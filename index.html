@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pocket Tools</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f6f4ef;
+      --ink: #1f2933;
+      --muted: #66727a;
+      --panel: #fffefa;
+      --line: #ded8cc;
+      --accent: #0f766e;
+      --accent-soft: #dff7ee;
+      --shadow: rgba(31, 41, 51, 0.08);
+      font-family: Aptos, "Segoe UI", Verdana, sans-serif;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #101214;
+        --ink: #e8ecef;
+        --muted: #9aa5ad;
+        --panel: #171a1d;
+        --line: #2e363d;
+        --accent: #6ee7b7;
+        --accent-soft: #12352c;
+        --shadow: rgba(0, 0, 0, 0.22);
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        linear-gradient(120deg, rgba(15, 118, 110, 0.1), transparent 28rem),
+        radial-gradient(circle at 88% 0%, rgba(180, 123, 0, 0.12), transparent 24rem),
+        var(--bg);
+      color: var(--ink);
+    }
+
+    main {
+      width: min(58rem, calc(100% - 2rem));
+      margin: 0 auto;
+      padding: 4rem 0;
+    }
+
+    header {
+      margin-bottom: 2rem;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2rem, 6vw, 4rem);
+      line-height: 1;
+      letter-spacing: 0;
+    }
+
+    p {
+      margin: 0.75rem 0 0;
+      color: var(--muted);
+      font-size: 1.05rem;
+      line-height: 1.6;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+      gap: 1rem;
+    }
+
+    a.tool {
+      display: block;
+      min-height: 10rem;
+      padding: 1rem;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      color: inherit;
+      text-decoration: none;
+      box-shadow: 0 1rem 2.5rem var(--shadow);
+      transition: transform 150ms ease, border-color 150ms ease;
+    }
+
+    a.tool:hover {
+      transform: translateY(-2px);
+      border-color: var(--accent);
+    }
+
+    .tool h2 {
+      margin: 0;
+      font-size: 1.2rem;
+    }
+
+    .tool p {
+      font-size: 0.95rem;
+    }
+
+    .tag {
+      display: inline-flex;
+      margin-top: 1rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 0.8rem;
+      font-weight: 650;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Pocket Tools</h1>
+      <p>Small browser-native tools for inspecting, debugging, and converting everyday data.</p>
+    </header>
+
+    <section class="grid" aria-label="Available tools">
+      <a class="tool" href="./json-inspector/">
+        <h2>JSON Inspector</h2>
+        <p>Inspect JSON or JSONC, decode multiline strings and embedded JSON strings, and export as pretty JSON or YAML.</p>
+        <span class="tag">Data</span>
+      </a>
+    </section>
+  </main>
+</body>
+</html>

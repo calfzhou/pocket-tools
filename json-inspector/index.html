@@ -1,0 +1,1149 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JSON Inspector</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #101214;
+      --panel: #171a1d;
+      --panel-2: #1d2227;
+      --ink: #e8ecef;
+      --muted: #9aa5ad;
+      --line: #2e363d;
+      --page-glow-a: rgba(110, 231, 183, 0.08);
+      --page-glow-b: rgba(245, 197, 66, 0.11);
+      --header-bg: rgba(16, 18, 20, 0.78);
+      --pane-title-bg: rgba(23, 26, 29, 0.82);
+      --button-bg: #22282e;
+      --button-hover: #293139;
+      --button-primary-bg: #12352c;
+      --button-primary-ink: #d7fff0;
+      --button-warn-bg: #351d20;
+      --input-bg: #0d0f11;
+      --input-ink: #e2e8f0;
+      --tabs-bg: rgba(29, 34, 39, 0.7);
+      --search-bg: #111417;
+      --pill-bg: #13171a;
+      --pill-good-ink: #b7ffe5;
+      --pill-good-line: rgba(110, 231, 183, 0.42);
+      --pill-bad-ink: #ffd5d5;
+      --pill-bad-line: rgba(255, 107, 107, 0.45);
+      --block-bg: #0d1114;
+      --pre-ink: #dbe7ee;
+      --block-pre-ink: #e8fff7;
+      --path: #7dd3fc;
+      --accent: #6ee7b7;
+      --accent-2: #f5c542;
+      --danger: #ff6b6b;
+      --string: #a7f3d0;
+      --number: #fbbf24;
+      --bool: #93c5fd;
+      --null: #c4b5fd;
+      --key: #f8fafc;
+      --mono: "Cascadia Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      --sans: "Aptos", "Segoe UI", Verdana, sans-serif;
+    }
+
+    :root[data-theme="light"] {
+      color-scheme: light;
+      --bg: #f5f4ef;
+      --panel: #fbfaf6;
+      --panel-2: #efede6;
+      --ink: #1d2528;
+      --muted: #647076;
+      --line: #d8d3c8;
+      --page-glow-a: rgba(10, 132, 111, 0.12);
+      --page-glow-b: rgba(196, 138, 25, 0.14);
+      --header-bg: rgba(245, 244, 239, 0.86);
+      --pane-title-bg: rgba(239, 237, 230, 0.86);
+      --button-bg: #ffffff;
+      --button-hover: #f0eee7;
+      --button-primary-bg: #dff7ee;
+      --button-primary-ink: #0e4a3d;
+      --button-warn-bg: #fff0ef;
+      --input-bg: #fffefa;
+      --input-ink: #1d2528;
+      --tabs-bg: rgba(239, 237, 230, 0.74);
+      --search-bg: #fffefa;
+      --pill-bg: #fffefa;
+      --pill-good-ink: #07543f;
+      --pill-good-line: #0f8f72;
+      --pill-bad-ink: #8f111b;
+      --pill-bad-line: #c53030;
+      --block-bg: #fffefa;
+      --pre-ink: #243033;
+      --block-pre-ink: #183d35;
+      --path: #075985;
+      --accent: #0f8f72;
+      --accent-2: #b47b00;
+      --danger: #b4232b;
+      --string: #0f766e;
+      --number: #a15c00;
+      --bool: #2563eb;
+      --null: #7c3aed;
+      --key: #111827;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+      background:
+        linear-gradient(120deg, var(--page-glow-a), transparent 26rem),
+        radial-gradient(circle at 90% 0%, var(--page-glow-b), transparent 24rem),
+        var(--bg);
+      color: var(--ink);
+      font-family: var(--sans);
+      letter-spacing: 0;
+    }
+
+    body {
+      min-width: 320px;
+      overflow: hidden;
+    }
+
+    button,
+    textarea,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button {
+      min-height: 2.35rem;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--button-bg);
+      color: var(--ink);
+      padding: 0.45rem 0.75rem;
+      cursor: pointer;
+      transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
+    }
+
+    button:hover {
+      border-color: #4c5b63;
+      background: var(--button-hover);
+    }
+
+    button:active {
+      transform: translateY(1px);
+    }
+
+    button.primary {
+      border-color: rgba(110, 231, 183, 0.55);
+      background: var(--button-primary-bg);
+      color: var(--button-primary-ink);
+    }
+
+    button.warn {
+      border-color: rgba(255, 107, 107, 0.45);
+      background: var(--button-warn-bg);
+    }
+
+    .app {
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      height: 100%;
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 1rem;
+      align-items: end;
+      padding: 1rem;
+      border-bottom: 1px solid var(--line);
+      background: var(--header-bg);
+      backdrop-filter: blur(14px);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.15rem, 2.2vw, 1.75rem);
+      font-weight: 720;
+      line-height: 1.15;
+    }
+
+    .subtitle {
+      margin-top: 0.28rem;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 0.5rem;
+    }
+
+    .theme-switch {
+      display: inline-flex;
+      gap: 0.2rem;
+      padding: 0.18rem;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--button-bg);
+    }
+
+    .theme-option {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.38rem;
+      min-height: 1.95rem;
+      border-color: transparent;
+      padding: 0.2rem 0.55rem;
+      color: var(--muted);
+      background: transparent;
+    }
+
+    .theme-option:hover {
+      border-color: transparent;
+      background: var(--button-hover);
+    }
+
+    .theme-option.active {
+      color: var(--ink);
+      border-color: rgba(110, 231, 183, 0.42);
+      background: rgba(110, 231, 183, 0.1);
+    }
+
+    .theme-icon {
+      width: 1rem;
+      text-align: center;
+      font-size: 1rem;
+      line-height: 1;
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(22rem, 0.86fr) minmax(0, 1.14fr);
+      min-height: 0;
+    }
+
+    .pane {
+      min-height: 0;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      border-right: 1px solid var(--line);
+    }
+
+    .pane:last-child {
+      border-right: 0;
+    }
+
+    .pane-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.8rem;
+      padding: 0.7rem 0.9rem;
+      border-bottom: 1px solid var(--line);
+      background: var(--pane-title-bg);
+    }
+
+    .pane-title strong {
+      font-size: 0.86rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .mini {
+      color: var(--muted);
+      font-size: 0.82rem;
+      white-space: nowrap;
+    }
+
+    textarea {
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      resize: none;
+      padding: 1rem;
+      border: 0;
+      outline: none;
+      background: var(--input-bg);
+      color: var(--input-ink);
+      font-family: var(--mono);
+      font-size: 0.92rem;
+      line-height: 1.55;
+      tab-size: 2;
+    }
+
+    .output-shell {
+      min-height: 0;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      background: var(--panel);
+    }
+
+    .tabs {
+      display: flex;
+      gap: 0.35rem;
+      align-items: center;
+      padding: 0.55rem 0.7rem;
+      border-bottom: 1px solid var(--line);
+      background: var(--tabs-bg);
+    }
+
+    .tab {
+      min-height: 2rem;
+      padding: 0.25rem 0.7rem;
+      color: var(--muted);
+      background: transparent;
+    }
+
+    .tab.active {
+      color: var(--ink);
+      border-color: rgba(110, 231, 183, 0.5);
+      background: rgba(110, 231, 183, 0.09);
+    }
+
+    .search {
+      margin-left: auto;
+      width: min(20rem, 45vw);
+      min-height: 2rem;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--search-bg);
+      color: var(--ink);
+      padding: 0.35rem 0.55rem;
+      outline: none;
+    }
+
+    .search:focus {
+      border-color: rgba(110, 231, 183, 0.7);
+    }
+
+    .view {
+      min-height: 0;
+      overflow: auto;
+      padding: 1rem;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .status {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 1.55rem;
+      padding: 0.1rem 0.5rem;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--pill-bg);
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+
+    .pill.good {
+      color: var(--pill-good-ink);
+      border-color: var(--pill-good-line);
+    }
+
+    .pill.bad {
+      color: var(--pill-bad-ink);
+      border-color: var(--pill-bad-line);
+    }
+
+    .tree {
+      font-family: var(--mono);
+      font-size: 0.9rem;
+      line-height: 1.52;
+    }
+
+    details {
+      margin-left: 1.05rem;
+    }
+
+    details > summary {
+      list-style-position: outside;
+      cursor: pointer;
+      color: var(--muted);
+      user-select: none;
+    }
+
+    .node {
+      margin-left: 1.05rem;
+      padding: 0.08rem 0;
+    }
+
+    .key {
+      color: var(--key);
+      font-weight: 650;
+    }
+
+    .path {
+      color: var(--path);
+      font-size: 0.78rem;
+      opacity: 0.9;
+    }
+
+    .string {
+      color: var(--string);
+    }
+
+    .number {
+      color: var(--number);
+    }
+
+    .boolean {
+      color: var(--bool);
+    }
+
+    .null {
+      color: var(--null);
+    }
+
+    .multiline {
+      margin: 0.45rem 0 0.75rem 1.05rem;
+      border: 1px solid var(--line);
+      border-left: 3px solid var(--accent);
+      border-radius: 6px;
+      background: var(--block-bg);
+      overflow: hidden;
+    }
+
+    .multiline.json-string {
+      border-left-color: var(--accent-2);
+    }
+
+    .multiline-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.6rem;
+      align-items: center;
+      padding: 0.35rem 0.55rem;
+      border-bottom: 1px solid var(--line);
+      color: var(--muted);
+      font-family: var(--sans);
+      font-size: 0.78rem;
+    }
+
+    .copy-small {
+      min-height: 1.55rem;
+      padding: 0.1rem 0.45rem;
+      font-size: 0.75rem;
+    }
+
+    pre {
+      margin: 0;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      font-family: var(--mono);
+      line-height: 1.5;
+    }
+
+    .multiline pre {
+      padding: 0.65rem;
+      color: var(--block-pre-ink);
+    }
+
+    .formatted pre {
+      color: var(--pre-ink);
+    }
+
+    .card-list {
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .empty,
+    .error {
+      display: grid;
+      align-content: center;
+      min-height: 100%;
+      color: var(--muted);
+      text-align: center;
+      padding: 2rem;
+    }
+
+    .error strong {
+      color: var(--danger);
+    }
+
+    mark {
+      border-radius: 3px;
+      background: rgba(245, 197, 66, 0.28);
+      color: inherit;
+      padding: 0 0.1rem;
+    }
+
+    @media (max-width: 900px) {
+      body {
+        overflow: auto;
+      }
+
+      .app {
+        height: auto;
+        min-height: 100%;
+      }
+
+      header {
+        grid-template-columns: 1fr;
+      }
+
+      .toolbar {
+        justify-content: flex-start;
+      }
+
+      main {
+        grid-template-columns: 1fr;
+      }
+
+      .pane {
+        min-height: 42rem;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .search {
+        width: 100%;
+        margin-left: 0;
+      }
+
+      .tabs {
+        flex-wrap: wrap;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <h1>JSON Inspector</h1>
+        <div class="subtitle">Paste JSON or JSONC. String fields with line breaks or embedded JSON render as readable decoded blocks.</div>
+      </div>
+      <div class="toolbar">
+        <button class="primary" id="parseBtn" type="button">Parse</button>
+        <button id="sampleBtn" type="button">Sample</button>
+        <button id="copyFormattedBtn" type="button">Copy JSON</button>
+        <button id="copyYamlBtn" type="button">Copy YAML</button>
+        <button id="copyTextBtn" type="button">Copy Text</button>
+        <button class="warn" id="clearBtn" type="button">Clear</button>
+        <div class="theme-switch" role="group" aria-label="Theme">
+          <button class="theme-option" type="button" data-theme-option="light" aria-label="Use light theme">
+            <span class="theme-icon" aria-hidden="true">☼</span>
+            <span>Light</span>
+          </button>
+          <button class="theme-option" type="button" data-theme-option="dark" aria-label="Use dark theme">
+            <span class="theme-icon" aria-hidden="true">◐</span>
+            <span>Dark</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="pane">
+        <div class="pane-title">
+          <strong>Input</strong>
+          <span class="mini" id="inputStats">0 chars</span>
+        </div>
+        <textarea id="input" spellcheck="false" placeholder="Paste JSON or JSON with comments here..."></textarea>
+      </section>
+
+      <section class="pane">
+        <div class="pane-title">
+          <strong>Output</strong>
+          <div class="status" id="status">
+            <span class="pill">Waiting</span>
+          </div>
+        </div>
+        <div class="output-shell">
+          <div class="tabs">
+            <button class="tab active" id="treeTab" type="button" data-tab="tree">Tree</button>
+            <button class="tab" id="stringsTab" type="button" data-tab="strings">Decoded Strings</button>
+            <button class="tab" id="jsonTab" type="button" data-tab="json">Pretty JSON</button>
+            <button class="tab" id="yamlTab" type="button" data-tab="yaml">YAML</button>
+            <input class="search" id="filter" type="search" placeholder="Filter path or text">
+          </div>
+          <div class="view">
+            <div class="tree" id="treeView"></div>
+            <div class="card-list hidden" id="stringsView"></div>
+            <div class="formatted hidden" id="jsonView"></div>
+            <div class="formatted hidden" id="yamlView"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const input = document.getElementById("input");
+    const inputStats = document.getElementById("inputStats");
+    const statusEl = document.getElementById("status");
+    const treeView = document.getElementById("treeView");
+    const stringsView = document.getElementById("stringsView");
+    const jsonView = document.getElementById("jsonView");
+    const yamlView = document.getElementById("yamlView");
+    const filter = document.getElementById("filter");
+    const themeOptions = Array.from(document.querySelectorAll("[data-theme-option]"));
+    const tabs = Array.from(document.querySelectorAll(".tab"));
+    const views = {
+      tree: treeView,
+      strings: stringsView,
+      json: jsonView,
+      yaml: yamlView
+    };
+    const storageKeys = {
+      theme: "jsonInspector.theme",
+      tab: "jsonInspector.tab"
+    };
+
+    let parsed = null;
+    let formattedJson = "";
+    let formattedYaml = "";
+    let textDump = "";
+    let activeTab = "tree";
+    let debounceId = 0;
+
+    const sampleText = `{
+  // JSONC comments and trailing commas are supported.
+  "id": "demo-event-001",
+  "status": "ok",
+  "createdAt": "2026-01-02T03:04:05Z",
+  "summary": {
+    "title": "Synthetic API result",
+    "tags": ["demo", "jsonc", "tooling",],
+  },
+  "content": {
+    "plainText": "First line\\nSecond line\\nThird line with indentation:\\n  - item one\\n  - item two",
+    "jsonString": "{\\"type\\":\\"notification\\",\\"severity\\":\\"info\\",\\"message\\":\\"Hello from a JSON string!\\\\nThis line break is decoded.\\",\\"items\\":[{\\"name\\":\\"alpha\\",\\"enabled\\":true},{\\"name\\":\\"beta\\",\\"enabled\\":false}]}",
+    "log": "GET /demo/items HTTP/1.1\\r\\nHost: example.test\\r\\nUser-Agent: demo-client/1.0\\r\\n\\r\\nHTTP/1.1 200 OK\\r\\nContent-Type: application/json\\r\\n\\r\\n{\\"result\\":\\"success\\"}",
+  },
+  "metrics": {
+    "durationMs": 128.42,
+    "retryCount": 0,
+    "cached": false,
+  },
+  /* Block comments are safe in the sample too. */
+  "metadata": null,
+}`;
+
+    function readSetting(key) {
+      try {
+        return window.localStorage.getItem(key);
+      } catch {
+        return null;
+      }
+    }
+
+    function writeSetting(key, value) {
+      try {
+        window.localStorage.setItem(key, value);
+      } catch {
+        // Browsers can block localStorage for local files; the tool still works without persistence.
+      }
+    }
+
+    function getInitialTheme() {
+      const storedTheme = readSetting(storageKeys.theme);
+      if (storedTheme === "light" || storedTheme === "dark") return storedTheme;
+      return window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+    }
+
+    function applyTheme(theme, persist = true) {
+      const nextTheme = theme === "light" ? "light" : "dark";
+      document.documentElement.dataset.theme = nextTheme;
+      themeOptions.forEach((option) => {
+        const isActive = option.dataset.themeOption === nextTheme;
+        option.classList.toggle("active", isActive);
+        option.setAttribute("aria-pressed", String(isActive));
+      });
+      if (persist) writeSetting(storageKeys.theme, nextTheme);
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function highlight(text, term) {
+      const safe = escapeHtml(text);
+      if (!term) return safe;
+      const escapedTerm = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      return safe.replace(new RegExp(escapedTerm, "ig"), (match) => `<mark>${match}</mark>`);
+    }
+
+    function setStatus(items) {
+      statusEl.innerHTML = items.map((item) => {
+        const className = item.kind ? `pill ${item.kind}` : "pill";
+        return `<span class="${className}">${escapeHtml(item.text)}</span>`;
+      }).join("");
+    }
+
+    function valueType(value) {
+      if (value === null) return "null";
+      if (Array.isArray(value)) return "array";
+      return typeof value;
+    }
+
+    function pathJoin(parent, key) {
+      if (parent === "$") {
+        return typeof key === "number" ? `$[${key}]` : `$.${key}`;
+      }
+      return typeof key === "number" ? `${parent}[${key}]` : `${parent}.${key}`;
+    }
+
+    function pathLabel(path) {
+      if (!path || path === "$") return "$";
+      const parts = path.match(/(?:\.?[^.[\]]+|\[\d+\]|#json)/g);
+      if (!parts || !parts.length) return path;
+      return parts[parts.length - 1].replace(/^\./, "");
+    }
+
+    function hasLineBreaks(value) {
+      return typeof value === "string" && /\r\n|\n|\r/.test(value);
+    }
+
+    function getEmbeddedJson(value) {
+      if (typeof value !== "string") return null;
+      const trimmed = value.trim();
+      if (!trimmed || !/^[\[{]/.test(trimmed)) return null;
+      try {
+        const parsedValue = JSON.parse(trimmed);
+        if (parsedValue && typeof parsedValue === "object") {
+          return parsedValue;
+        }
+      } catch {
+        return null;
+      }
+      return null;
+    }
+
+    function describeJsonValue(value) {
+      if (Array.isArray(value)) return `Array(${value.length})`;
+      if (value && typeof value === "object") return `Object(${Object.keys(value).length})`;
+      return valueType(value);
+    }
+
+    function stripJsonComments(source) {
+      let output = "";
+      let inString = false;
+      let quote = "";
+      let escaped = false;
+
+      for (let i = 0; i < source.length; i += 1) {
+        const char = source[i];
+        const next = source[i + 1];
+
+        if (inString) {
+          output += char;
+          if (escaped) {
+            escaped = false;
+          } else if (char === "\\") {
+            escaped = true;
+          } else if (char === quote) {
+            inString = false;
+          }
+          continue;
+        }
+
+        if (char === '"' || char === "'") {
+          inString = true;
+          quote = char;
+          output += char;
+          continue;
+        }
+
+        if (char === "/" && next === "/") {
+          output += "  ";
+          i += 2;
+          while (i < source.length && source[i] !== "\n" && source[i] !== "\r") {
+            output += " ";
+            i += 1;
+          }
+          i -= 1;
+          continue;
+        }
+
+        if (char === "/" && next === "*") {
+          output += "  ";
+          i += 2;
+          while (i < source.length && !(source[i] === "*" && source[i + 1] === "/")) {
+            output += source[i] === "\n" || source[i] === "\r" ? source[i] : " ";
+            i += 1;
+          }
+          if (i < source.length) {
+            output += "  ";
+            i += 1;
+          }
+          continue;
+        }
+
+        output += char;
+      }
+
+      return output;
+    }
+
+    function removeTrailingCommas(source) {
+      let output = "";
+      let inString = false;
+      let quote = "";
+      let escaped = false;
+
+      for (let i = 0; i < source.length; i += 1) {
+        const char = source[i];
+
+        if (inString) {
+          output += char;
+          if (escaped) {
+            escaped = false;
+          } else if (char === "\\") {
+            escaped = true;
+          } else if (char === quote) {
+            inString = false;
+          }
+          continue;
+        }
+
+        if (char === '"' || char === "'") {
+          inString = true;
+          quote = char;
+          output += char;
+          continue;
+        }
+
+        if (char === ",") {
+          let j = i + 1;
+          while (j < source.length && /\s/.test(source[j])) j += 1;
+          if (source[j] === "}" || source[j] === "]") {
+            output += " ";
+            continue;
+          }
+        }
+
+        output += char;
+      }
+
+      return output;
+    }
+
+    function preprocessJson(source) {
+      return removeTrailingCommas(stripJsonComments(source));
+    }
+
+    function yamlIndent(level) {
+      return " ".repeat(level);
+    }
+
+    function isScalar(value) {
+      return value === null || typeof value !== "object";
+    }
+
+    function yamlKey(key) {
+      return /^[A-Za-z_][A-Za-z0-9_-]*$/.test(key) ? key : JSON.stringify(key);
+    }
+
+    function isPlainYamlString(value) {
+      return value !== ""
+        && !/^\s|\s$/.test(value)
+        && !/[:#,[\]{}&*!|>'"%@`]/.test(value)
+        && !/^(true|false|null|yes|no|on|off|[-+]?\d+(\.\d+)?([eE][-+]?\d+)?)$/i.test(value);
+    }
+
+    function yamlBlockString(value, level) {
+      const lines = value.replace(/\r\n|\r/g, "\n").split("\n");
+      return "|-\n" + lines.map((line) => `${yamlIndent(level)}${line}`).join("\n");
+    }
+
+    function yamlScalar(value, level) {
+      if (value === null) return "null";
+      if (typeof value === "boolean") return value ? "true" : "false";
+      if (typeof value === "number") return Number.isFinite(value) ? String(value) : JSON.stringify(String(value));
+      if (typeof value === "string") {
+        if (hasLineBreaks(value)) return yamlBlockString(value, level);
+        return isPlainYamlString(value) ? value : JSON.stringify(value);
+      }
+      return JSON.stringify(String(value));
+    }
+
+    function toYaml(value, level = 0) {
+      const prefix = yamlIndent(level);
+
+      if (Array.isArray(value)) {
+        if (!value.length) return `${prefix}[]`;
+        return value.map((item) => {
+          if (isScalar(item)) {
+            const scalar = yamlScalar(item, level + 2);
+            if (String(scalar).startsWith("|")) {
+              return `${prefix}- ${scalar.replace(/\n/g, `\n${yamlIndent(level + 2)}`)}`;
+            }
+            return `${prefix}- ${scalar}`;
+          }
+          return `${prefix}-\n${toYaml(item, level + 2)}`;
+        }).join("\n");
+      }
+
+      if (value && typeof value === "object") {
+        const entries = Object.entries(value);
+        if (!entries.length) return `${prefix}{}`;
+        return entries.map(([key, child]) => {
+          const safeKey = yamlKey(key);
+          if (isScalar(child)) {
+            const scalar = yamlScalar(child, level + 2);
+            if (String(scalar).startsWith("|")) {
+              return `${prefix}${safeKey}: ${scalar}`;
+            }
+            return `${prefix}${safeKey}: ${scalar}`;
+          }
+          return `${prefix}${safeKey}:\n${toYaml(child, level + 2)}`;
+        }).join("\n");
+      }
+
+      return `${prefix}${yamlScalar(value, level)}`;
+    }
+
+    function countNodes(value) {
+      if (value === null || typeof value !== "object") return 1;
+      return 1 + Object.values(value).reduce((sum, child) => sum + countNodes(child), 0);
+    }
+
+    function findDecodedFields(value, path = "$", out = []) {
+      const embeddedJson = getEmbeddedJson(value);
+      if (embeddedJson) {
+        out.push({ kind: "json", path, value, parsedValue: embeddedJson });
+      }
+      if (hasLineBreaks(value)) {
+        out.push({ kind: "multiline", path, value });
+      } else if (value && typeof value === "object") {
+        Object.entries(value).forEach(([key, child]) => {
+          const nextKey = Array.isArray(value) ? Number(key) : key;
+          findDecodedFields(child, pathJoin(path, nextKey), out);
+        });
+      }
+      return out;
+    }
+
+    function scalarMarkup(value, path, term) {
+      if (typeof value === "string") {
+        const embeddedJson = getEmbeddedJson(value);
+        if (embeddedJson) {
+          return embeddedJsonMarkup(path, value, embeddedJson, term);
+        }
+        if (hasLineBreaks(value)) {
+          return multilineMarkup(path, value, term);
+        }
+        return `<span class="string">"${highlight(value, term)}"</span>`;
+      }
+      if (typeof value === "number") return `<span class="number">${String(value)}</span>`;
+      if (typeof value === "boolean") return `<span class="boolean">${String(value)}</span>`;
+      if (value === null) return `<span class="null">null</span>`;
+      return escapeHtml(String(value));
+    }
+
+    function multilineMarkup(path, value, term) {
+      const lines = value.split(/\r\n|\n|\r/).length;
+      const fieldLabel = path ? pathLabel(path) : "string";
+      return `
+        <div class="multiline" title="${escapeHtml(path)}" data-text="${escapeHtml(path + " " + value).toLowerCase()}">
+          <div class="multiline-head">
+            <span>${escapeHtml(fieldLabel)} | ${lines} lines</span>
+            <button class="copy-small" type="button" data-copy="${escapeHtml(value)}">Copy</button>
+          </div>
+          <pre>${highlight(value, term)}</pre>
+        </div>`;
+    }
+
+    function embeddedJsonMarkup(path, rawValue, parsedValue, term) {
+      const pretty = JSON.stringify(parsedValue, null, 2);
+      const label = describeJsonValue(parsedValue);
+      const decodedPath = `${path}#json`;
+      return `
+        <div class="multiline json-string" title="${escapeHtml(path)}" data-text="${escapeHtml(path + " " + rawValue + " " + pretty).toLowerCase()}">
+          <div class="multiline-head">
+            <span>${escapeHtml(pathLabel(path))} | JSON string | ${escapeHtml(label)}</span>
+            <button class="copy-small" type="button" data-copy="${escapeHtml(pretty)}">Copy decoded</button>
+          </div>
+          ${renderTreeNode(parsedValue, null, decodedPath, term)}
+        </div>`;
+    }
+
+    function renderTreeNode(value, key, path, term) {
+      const keyHtml = key === null ? "" : `<span class="key">${escapeHtml(key)}:</span> `;
+      const type = valueType(value);
+      const searchText = `${path} ${typeof value === "string" ? value : ""}`.toLowerCase();
+      const hidden = term && !searchText.includes(term.toLowerCase()) && type !== "object" && type !== "array";
+
+      if (type === "array" || type === "object") {
+        const entries = Object.entries(value);
+        const label = type === "array" ? `Array(${value.length})` : `Object(${entries.length})`;
+        const body = entries.map(([childKey, child]) => {
+          const displayKey = type === "array" ? `[${childKey}]` : childKey;
+          const pathKey = type === "array" ? Number(childKey) : childKey;
+          return renderTreeNode(child, displayKey, pathJoin(path, pathKey), term);
+        }).join("");
+        return `
+          <details open data-text="${escapeHtml(searchText)}">
+            <summary title="${escapeHtml(path)}">${keyHtml}${label}</summary>
+            ${body || '<div class="node"><span class="null">empty</span></div>'}
+          </details>`;
+      }
+
+      if (hidden) return "";
+      return `<div class="node" title="${escapeHtml(path)}" data-text="${escapeHtml(searchText)}">${keyHtml}${scalarMarkup(value, path, term)}</div>`;
+    }
+
+    function renderAll() {
+      const term = filter.value.trim();
+      if (parsed === null) {
+        treeView.innerHTML = '<div class="empty">Paste JSON, then press Parse.</div>';
+        stringsView.innerHTML = '<div class="empty">No parsed JSON yet.</div>';
+        jsonView.innerHTML = '<div class="empty">No parsed JSON yet.</div>';
+        yamlView.innerHTML = '<div class="empty">No parsed JSON yet.</div>';
+        return;
+      }
+
+      const decodedFields = findDecodedFields(parsed);
+      treeView.innerHTML = renderTreeNode(parsed, null, "$", term);
+      stringsView.innerHTML = decodedFields
+        .filter((field) => !term || `${field.path} ${field.value}`.toLowerCase().includes(term.toLowerCase()))
+        .map((field) => field.kind === "json"
+          ? embeddedJsonMarkup(field.path, field.value, field.parsedValue, term)
+          : multilineMarkup(field.path, field.value, term))
+        .join("") || '<div class="empty">No decoded string fields match the filter.</div>';
+      jsonView.innerHTML = `<pre>${highlight(formattedJson, term)}</pre>`;
+      yamlView.innerHTML = `<pre>${highlight(formattedYaml, term)}</pre>`;
+
+      treeView.querySelectorAll(".copy-small").forEach((button) => {
+        button.addEventListener("click", () => copyToClipboard(button.dataset.copy || ""));
+      });
+      stringsView.querySelectorAll(".copy-small").forEach((button) => {
+        button.addEventListener("click", () => copyToClipboard(button.dataset.copy || ""));
+      });
+    }
+
+    function plainText(value, path = "$", lines = []) {
+      const type = valueType(value);
+      if (type === "array" || type === "object") {
+        Object.entries(value).forEach(([key, child]) => {
+          const nextKey = type === "array" ? Number(key) : key;
+          plainText(child, pathJoin(path, nextKey), lines);
+        });
+      } else if (typeof value === "string" && getEmbeddedJson(value)) {
+        lines.push(`${path} decoded JSON:`);
+        lines.push(JSON.stringify(getEmbeddedJson(value), null, 2));
+        lines.push("");
+      } else if (typeof value === "string" && hasLineBreaks(value)) {
+        lines.push(`${path}:`);
+        lines.push(value);
+        lines.push("");
+      } else {
+        lines.push(`${path}: ${String(value)}`);
+      }
+      return lines;
+    }
+
+    function tryParse() {
+      const raw = input.value.trim();
+      inputStats.textContent = `${input.value.length.toLocaleString()} chars`;
+
+      if (!raw) {
+        parsed = null;
+        formattedJson = "";
+        formattedYaml = "";
+        textDump = "";
+        setStatus([{ text: "Waiting" }]);
+        renderAll();
+        return;
+      }
+
+      try {
+        parsed = JSON.parse(preprocessJson(raw));
+        formattedJson = JSON.stringify(parsed, null, 2);
+        formattedYaml = toYaml(parsed);
+        textDump = plainText(parsed).join("\n");
+        const decodedFields = findDecodedFields(parsed);
+        const multilineCount = decodedFields.filter((field) => field.kind === "multiline").length;
+        const jsonStringCount = decodedFields.filter((field) => field.kind === "json").length;
+        setStatus([
+          { text: "Valid JSON / JSONC", kind: "good" },
+          { text: `${countNodes(parsed).toLocaleString()} nodes` },
+          { text: `${multilineCount.toLocaleString()} multiline fields` },
+          { text: `${jsonStringCount.toLocaleString()} JSON strings` }
+        ]);
+        renderAll();
+      } catch (error) {
+        parsed = null;
+        formattedJson = "";
+        formattedYaml = "";
+        textDump = "";
+        setStatus([{ text: "Invalid JSON", kind: "bad" }]);
+        const message = escapeHtml(error.message || String(error));
+        treeView.innerHTML = `<div class="error"><strong>Parse failed</strong><br>${message}</div>`;
+        stringsView.innerHTML = '<div class="empty">Fix the JSON input first.</div>';
+        jsonView.innerHTML = '<div class="empty">Fix the JSON input first.</div>';
+        yamlView.innerHTML = '<div class="empty">Fix the JSON input first.</div>';
+      }
+    }
+
+    async function copyToClipboard(text) {
+      if (!text) return;
+      await navigator.clipboard.writeText(text);
+      setStatus([{ text: "Copied", kind: "good" }]);
+      window.setTimeout(() => tryParse(), 900);
+    }
+
+    function setActiveTab(tabName, persist = true) {
+      const nextTab = views[tabName] ? tabName : "tree";
+      activeTab = nextTab;
+      tabs.forEach((tab) => tab.classList.toggle("active", tab.dataset.tab === nextTab));
+      Object.entries(views).forEach(([name, view]) => {
+        view.classList.toggle("hidden", name !== nextTab);
+      });
+      if (persist) writeSetting(storageKeys.tab, nextTab);
+    }
+
+    applyTheme(getInitialTheme(), false);
+    setActiveTab(readSetting(storageKeys.tab) || activeTab, false);
+
+    document.getElementById("parseBtn").addEventListener("click", tryParse);
+    document.getElementById("sampleBtn").addEventListener("click", () => {
+      input.value = sampleText;
+      tryParse();
+    });
+    document.getElementById("copyFormattedBtn").addEventListener("click", () => copyToClipboard(formattedJson));
+    document.getElementById("copyYamlBtn").addEventListener("click", () => copyToClipboard(formattedYaml));
+    document.getElementById("copyTextBtn").addEventListener("click", () => copyToClipboard(textDump));
+    document.getElementById("clearBtn").addEventListener("click", () => {
+      input.value = "";
+      filter.value = "";
+      tryParse();
+    });
+    input.addEventListener("input", () => {
+      inputStats.textContent = `${input.value.length.toLocaleString()} chars`;
+      window.clearTimeout(debounceId);
+      debounceId = window.setTimeout(tryParse, 280);
+    });
+    themeOptions.forEach((option) => {
+      option.addEventListener("click", () => applyTheme(option.dataset.themeOption));
+    });
+    filter.addEventListener("input", renderAll);
+    tabs.forEach((tab) => tab.addEventListener("click", () => setActiveTab(tab.dataset.tab)));
+
+    renderAll();
+  </script>
+</body>
+</html>
