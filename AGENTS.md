@@ -12,7 +12,7 @@ This repository hosts small browser-native tools through GitHub Pages.
 ## Tool Guidelines
 
 - Keep each tool usable by opening its `index.html` directly in a browser when possible.
-- Design for GitHub Pages URLs like `/pocket-tools/json-inspector/`.
+- Design for custom-domain GitHub Pages URLs like `/json-inspector/`.
 - Do not embed real user data, internal URLs, tokens, logs, IDs, or private samples. Use synthetic examples that demonstrate the feature.
 - If a tool uses browser permissions such as clipboard access, explain that in the tool UI or its README.
 - Preserve user privacy by doing all processing locally in the browser unless the tool explicitly documents a network call.
@@ -36,6 +36,8 @@ The expected Pages setup is:
 Public URLs should remain short and stable:
 
 ```text
-https://calfzhou.github.io/pocket-tools/
-https://calfzhou.github.io/pocket-tools/<tool-name>/
+https://tools.gocalf.com/
+https://tools.gocalf.com/<tool-name>/
 ```
+
+Keep the root `CNAME` file set to `tools.gocalf.com`.
