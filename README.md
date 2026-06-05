@@ -10,22 +10,7 @@ Small browser-native tools for inspecting, debugging, and converting everyday da
 
 ## Organization
 
-Each tool lives in a top-level folder with an `index.html` file:
-
-```text
-pocket-tools/
-  CNAME
-  index.html
-  clipboard-debug/
-    index.html
-  homebrew-review/
-    collect-homebrew-data.sh
-    index.html
-  json-inspector/
-    index.html
-```
-
-This keeps GitHub Pages URLs short, for example `/json-inspector/` on `tools.gocalf.com`. Add a deeper grouping layer only if the collection grows enough to need categories.
+The root `index.html` is the catalog page. Each tool lives in a top-level folder with its own `index.html`, keeping GitHub Pages URLs short, for example `/json-inspector/` on `tools.gocalf.com`. Add a deeper grouping layer only if the collection grows enough to need categories.
 
 ## GitHub Pages
 
