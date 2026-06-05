@@ -6,6 +6,7 @@ Small browser-native tools for inspecting, debugging, and converting everyday da
 
 - [JSON Inspector](./json-inspector/) - inspect JSON or JSONC, decode multiline strings and embedded JSON strings, and export as pretty JSON or YAML.
 - [Clipboard Debug](./clipboard-debug/) - paste content and inspect the raw text/html and text/plain clipboard data, with HTML sanitization and tag detection.
+- [Homebrew Package Review](./homebrew-review/) - review local Homebrew packages from an uploaded collector JSON file, with requested/auto status, install dates, cleanup candidates, and a dependency map.
 
 ## Organization
 
@@ -16,6 +17,9 @@ pocket-tools/
   CNAME
   index.html
   clipboard-debug/
+    index.html
+  homebrew-review/
+    collect-homebrew-data.sh
     index.html
   json-inspector/
     index.html
@@ -30,6 +34,7 @@ This site is configured for the custom domain:
 ```text
 https://tools.gocalf.com/
 https://tools.gocalf.com/json-inspector/
+https://tools.gocalf.com/homebrew-review/
 ```
 
 The root `CNAME` file must remain present for GitHub Pages to keep the custom domain.

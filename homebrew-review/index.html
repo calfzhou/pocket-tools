@@ -1,0 +1,1616 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Homebrew Package Review</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f6f4ef;
+      --panel: #fffefa;
+      --panel-2: #f0ece2;
+      --ink: #1f2933;
+      --muted: #66727a;
+      --line: #ded8cc;
+      --accent: #0f766e;
+      --accent-2: #b47b00;
+      --accent-soft: #dff7ee;
+      --danger: #b4232b;
+      --shadow: rgba(31, 41, 51, 0.08);
+      --mono: "Cascadia Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      --sans: Aptos, "Segoe UI", Verdana, sans-serif;
+      font-family: var(--sans);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #101214;
+        --panel: #171a1d;
+        --panel-2: #20262b;
+        --ink: #e8ecef;
+        --muted: #9aa5ad;
+        --line: #2e363d;
+        --accent: #6ee7b7;
+        --accent-2: #f5c542;
+        --accent-soft: #12352c;
+        --danger: #ff8a8a;
+        --shadow: rgba(0, 0, 0, 0.22);
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+    }
+
+    body {
+      min-width: 320px;
+      background:
+        linear-gradient(120deg, rgba(15, 118, 110, 0.1), transparent 28rem),
+        radial-gradient(circle at 90% 0%, rgba(180, 123, 0, 0.12), transparent 24rem),
+        var(--bg);
+      color: var(--ink);
+      overflow: hidden;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button,
+    .button {
+      min-height: 2.35rem;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--panel);
+      color: var(--ink);
+      padding: 0.45rem 0.75rem;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    button:hover,
+    .button:hover {
+      border-color: var(--accent);
+    }
+
+    button.primary,
+    .button.primary {
+      border-color: rgba(15, 118, 110, 0.45);
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-weight: 650;
+    }
+
+    code,
+    pre {
+      font-family: var(--mono);
+    }
+
+    .app {
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      height: 100%;
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 1rem;
+      align-items: end;
+      padding: 1rem;
+      border-bottom: 1px solid var(--line);
+      background: color-mix(in srgb, var(--bg), transparent 13%);
+      backdrop-filter: blur(14px);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.15rem, 2.2vw, 1.75rem);
+      line-height: 1.15;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin-top: 0.28rem;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .header-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 0.5rem;
+    }
+
+    main {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 22rem;
+    }
+
+    .workspace {
+      min-height: 0;
+      display: grid;
+      grid-template-rows: auto auto minmax(0, 1fr);
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: grid;
+      place-items: center;
+      padding: 1rem;
+      background: rgba(0, 0, 0, 0.42);
+    }
+
+    .modal {
+      width: min(46rem, 100%);
+      max-height: min(42rem, calc(100vh - 2rem));
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--panel);
+      box-shadow: 0 2rem 5rem rgba(0, 0, 0, 0.28);
+    }
+
+    .modal-head {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 1rem 1rem 0.75rem;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .modal-head h2 {
+      margin: 0;
+      font-size: 1.1rem;
+    }
+
+    .modal-body {
+      display: grid;
+      gap: 0.9rem;
+      padding: 1rem;
+    }
+
+    .dropzone {
+      display: grid;
+      gap: 0.65rem;
+      align-content: center;
+      min-height: 8rem;
+      padding: 1rem;
+      border: 1px dashed var(--line);
+      border-radius: 8px;
+      background: var(--panel-2);
+      text-align: center;
+    }
+
+    .dropzone.dragover {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .dropzone strong {
+      display: block;
+      font-size: 1.05rem;
+    }
+
+    .dropzone span,
+    .collector-note,
+    .status {
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.45;
+    }
+
+    .modal-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      justify-content: center;
+    }
+
+    .command {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 0.5rem;
+      align-items: center;
+      margin-top: 0.75rem;
+    }
+
+    .command code {
+      display: block;
+      min-width: 0;
+      overflow: auto;
+      padding: 0.65rem;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--panel-2);
+      white-space: nowrap;
+      font-size: 0.82rem;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(8, minmax(6.5rem, 1fr));
+      gap: 1px;
+      border-bottom: 1px solid var(--line);
+      background: var(--line);
+    }
+
+    .stat {
+      padding: 0.72rem 0.85rem;
+      background: color-mix(in srgb, var(--panel), transparent 10%);
+    }
+
+    .stat b {
+      display: block;
+      font-size: 1.35rem;
+      line-height: 1;
+    }
+
+    .stat span {
+      color: var(--muted);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 0;
+      padding: 0.65rem 1rem;
+      border-bottom: 1px solid var(--line);
+      background: color-mix(in srgb, var(--panel), transparent 20%);
+    }
+
+    .tab {
+      border-radius: 0;
+      border-right: 0;
+    }
+
+    .tab:first-child {
+      border-radius: 7px 0 0 7px;
+    }
+
+    .tab:last-child {
+      border-right: 1px solid var(--line);
+      border-radius: 0 7px 7px 0;
+    }
+
+    .tab.active {
+      background: var(--ink);
+      color: var(--bg);
+      border-color: var(--ink);
+    }
+
+    .view {
+      min-height: 0;
+      display: none;
+    }
+
+    .view.active {
+      display: grid;
+    }
+
+    .review-view {
+      grid-template-rows: auto auto minmax(0, 1fr);
+      padding: 1rem;
+      gap: 0.75rem;
+    }
+
+    .review-controls,
+    .map-controls {
+      display: grid;
+      grid-template-columns: 9rem minmax(0, 1fr);
+      gap: 0.6rem;
+    }
+
+    .review-controls input,
+    .review-controls select,
+    .map-controls input {
+      width: 100%;
+      min-height: 2.35rem;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--panel);
+      color: var(--ink);
+      padding: 0.45rem 0.65rem;
+      outline: none;
+    }
+
+    .review-controls input:focus,
+    .review-controls select:focus,
+    .map-controls input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent), transparent 78%);
+    }
+
+    .review-head,
+    .review-row {
+      display: grid;
+      grid-template-columns: 2rem minmax(11rem, 0.8fr) 7.5rem 6.7rem minmax(15rem, 1.2fr) 3.2rem 3.4rem 4rem;
+      gap: 0.65rem;
+      align-items: center;
+    }
+
+    .review-head {
+      color: var(--muted);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      border-bottom: 1px solid var(--line);
+      padding: 0 0.45rem 0.4rem;
+    }
+
+    .sort-head {
+      min-height: 1.5rem;
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 0;
+      text-align: left;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .sort-head.num {
+      text-align: right;
+    }
+
+    .sort-head.active {
+      color: var(--ink);
+      font-weight: 800;
+    }
+
+    .sort-head.active::after {
+      content: " ↑";
+    }
+
+    .sort-head.active.desc::after {
+      content: " ↓";
+    }
+
+    .review-list {
+      min-height: 0;
+      overflow: auto;
+      display: block;
+      padding-right: 0.25rem;
+    }
+
+    .empty-state {
+      max-width: 32rem;
+      margin: 2rem auto;
+      padding: 1rem;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      text-align: center;
+      box-shadow: 0 1rem 2.5rem var(--shadow);
+    }
+
+    .empty-state p {
+      margin: 0 0 0.8rem;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .review-item {
+      margin-bottom: 0.35rem;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      overflow: visible;
+    }
+
+    .review-row {
+      width: 100%;
+      min-height: 3.1rem;
+      padding: 0.45rem;
+      cursor: pointer;
+    }
+
+    .review-item.selected {
+      border-color: var(--accent-2);
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-2), transparent 78%);
+    }
+
+    .toggle {
+      width: 1.45rem;
+      min-height: 1.45rem;
+      padding: 0;
+      display: inline-grid;
+      place-items: center;
+    }
+
+    .pkg-name,
+    .pkg-version,
+    .pkg-installed,
+    .pkg-info {
+      min-width: 0;
+      line-height: 1.28;
+    }
+
+    .pkg-name b,
+    .pkg-version b,
+    .pkg-installed b,
+    .pkg-info b {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .pkg-version span,
+    .pkg-installed span,
+    .pkg-info span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.78rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.25rem;
+      margin-top: 0.2rem;
+    }
+
+    .tag {
+      border: 1px solid color-mix(in srgb, var(--muted), transparent 65%);
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: 0.68rem;
+      padding: 0.05rem 0.35rem;
+    }
+
+    .tag.hot {
+      color: var(--danger);
+      border-color: color-mix(in srgb, var(--danger), transparent 55%);
+    }
+
+    .num {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .expand {
+      border-top: 1px solid var(--line);
+      background: color-mix(in srgb, var(--panel-2), transparent 38%);
+      padding: 0.65rem 0.8rem 0.7rem 3.1rem;
+    }
+
+    .tree-line {
+      display: grid;
+      grid-template-columns: 5.8rem minmax(0, 1fr);
+      gap: 0.65rem;
+      margin: 0.4rem 0;
+      font-size: 0.85rem;
+    }
+
+    .tree-label {
+      color: var(--muted);
+      font-weight: 650;
+    }
+
+    .tree-items {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+    }
+
+    .tree-items button {
+      min-height: 1.6rem;
+      max-width: 12rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      border-radius: 999px;
+      padding: 0.1rem 0.5rem;
+      font-size: 0.78rem;
+    }
+
+    .map-view {
+      grid-template-rows: auto minmax(0, 1fr);
+    }
+
+    .map-controls {
+      grid-template-columns: minmax(14rem, 1fr) auto auto;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .filter-group {
+      display: inline-flex;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      overflow: hidden;
+      background: var(--panel);
+    }
+
+    .filter-group button {
+      border: 0;
+      border-radius: 0;
+      min-height: 2.35rem;
+    }
+
+    .filter-group button.active {
+      background: var(--ink);
+      color: var(--bg);
+    }
+
+    .canvas-wrap {
+      position: relative;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: grab;
+    }
+
+    canvas.dragging {
+      cursor: grabbing;
+    }
+
+    .legend {
+      position: absolute;
+      left: 1rem;
+      bottom: 1rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.55rem;
+      padding: 0.6rem;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: color-mix(in srgb, var(--panel), transparent 8%);
+      box-shadow: 0 1rem 2.5rem var(--shadow);
+      font-size: 0.78rem;
+    }
+
+    .key {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.32rem;
+      color: var(--muted);
+    }
+
+    .dot {
+      width: 0.65rem;
+      height: 0.65rem;
+      border-radius: 999px;
+    }
+
+    aside {
+      min-height: 0;
+      overflow: auto;
+      border-left: 1px solid var(--line);
+      background: color-mix(in srgb, var(--panel), transparent 14%);
+    }
+
+    .side-section {
+      padding: 1rem;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .side-section h2,
+    .side-section h3 {
+      margin: 0 0 0.65rem;
+      font-size: 1rem;
+    }
+
+    .side-section h2 {
+      font-size: 1.3rem;
+      overflow-wrap: anywhere;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .mini-list {
+      display: grid;
+      gap: 0.4rem;
+    }
+
+    .mini-list button {
+      text-align: left;
+      min-height: 2rem;
+      font-size: 0.88rem;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    @media (max-width: 1100px) {
+      body {
+        overflow: auto;
+      }
+
+      .app,
+      main {
+        height: auto;
+        min-height: 100%;
+      }
+
+      main {
+        grid-template-columns: 1fr;
+      }
+
+      aside {
+        border-left: 0;
+        border-top: 1px solid var(--line);
+      }
+
+      header {
+        grid-template-columns: 1fr;
+      }
+
+      .header-actions {
+        justify-content: flex-start;
+      }
+
+      .stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .workspace {
+        min-height: 42rem;
+      }
+
+      .review-head,
+      .review-row {
+        grid-template-columns: 2rem minmax(10rem, 1fr) 6rem 6rem 3rem 3rem 3.7rem;
+      }
+
+      .pkg-info,
+      .review-head .info-head {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <h1>Homebrew Package Review</h1>
+        <div class="subtitle">Review requested packages, cleanup candidates, install dates, and dependency hierarchy from a local Homebrew data file.</div>
+      </div>
+      <div class="header-actions">
+        <button class="primary" id="openCollector" type="button">Load data</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="workspace">
+        <section class="stats" id="stats" aria-label="Summary"></section>
+
+        <nav class="tabs" aria-label="Views">
+          <button class="tab active" type="button" data-view="review">Review</button>
+          <button class="tab" type="button" data-view="map">Map</button>
+        </nav>
+
+        <section class="view review-view active" id="reviewView">
+          <div class="review-controls">
+            <select id="reviewMode" aria-label="Review package group">
+              <option value="requested" selected>Requested</option>
+              <option value="auto">Auto deps</option>
+              <option value="leaves">Leaves</option>
+              <option value="outdated">Outdated</option>
+              <option value="casks">Casks</option>
+              <option value="all">All</option>
+            </select>
+            <input id="reviewSearch" type="search" placeholder="Filter packages">
+          </div>
+          <div class="review-head">
+            <span></span>
+            <button type="button" class="sort-head" data-sort="name">Package</button>
+            <span>Version</span>
+            <button type="button" class="sort-head" data-sort="installed">Installed</button>
+            <span class="info-head">Info</span>
+            <button type="button" class="sort-head num" data-sort="deps">Deps</button>
+            <button type="button" class="sort-head num" data-sort="used">Used</button>
+            <span>State</span>
+          </div>
+          <div class="review-list" id="reviewList"></div>
+        </section>
+
+        <section class="view map-view" id="mapView">
+          <div class="map-controls">
+            <input id="mapSearch" type="search" placeholder="Search package, tap, or description">
+            <div class="filter-group" id="mapFilters">
+              <button class="active" type="button" data-filter="all">All</button>
+              <button type="button" data-filter="requested">Requested</button>
+              <button type="button" data-filter="leaf">Leaves</button>
+              <button type="button" data-filter="shared">Shared</button>
+              <button type="button" data-filter="outdated">Outdated</button>
+            </div>
+            <button id="resetMap" type="button">Reset</button>
+          </div>
+          <div class="canvas-wrap">
+            <canvas id="graph"></canvas>
+            <div class="legend">
+              <span class="key"><i class="dot" style="background:#0f766e"></i>Requested</span>
+              <span class="key"><i class="dot" style="background:#66727a"></i>Dependency</span>
+              <span class="key"><i class="dot" style="background:#b47b00"></i>Leaf</span>
+              <span class="key"><i class="dot" style="background:#4b62aa"></i>Cask</span>
+              <span class="key"><i class="dot" style="background:#b4232b"></i>Outdated ring</span>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <aside>
+        <section class="side-section" id="detail">
+          <h2>No data loaded</h2>
+          <p class="muted">Drop a collector JSON file to inspect packages.</p>
+        </section>
+        <section class="side-section">
+          <h3>Largest Requested Roots</h3>
+          <div class="mini-list" id="topRoots"></div>
+        </section>
+        <section class="side-section">
+          <h3>Most Shared Dependencies</h3>
+          <div class="mini-list" id="topShared"></div>
+        </section>
+      </aside>
+    </main>
+
+    <div class="modal-backdrop hidden" id="collectorModal" role="dialog" aria-modal="true" aria-labelledby="collectorTitle">
+      <section class="modal">
+        <div class="modal-head">
+          <div>
+            <h2 id="collectorTitle">Load Homebrew data</h2>
+            <div class="status" id="status">No data loaded.</div>
+          </div>
+          <button id="closeCollector" type="button" aria-label="Close">Close</button>
+        </div>
+        <div class="modal-body">
+          <div class="dropzone" id="dropzone">
+            <input class="hidden" id="fileInput" type="file" accept="application/json,.json">
+            <strong>Drop collector JSON here</strong>
+            <span>The file is parsed locally in your browser and is not uploaded to a server.</span>
+            <div class="modal-actions">
+              <button class="primary" id="chooseFile" type="button">Choose JSON file</button>
+            </div>
+          </div>
+          <div>
+            <p class="collector-note">Need a data file? Download and run the collector script, or use the one-line command. It writes a JSON file in your current directory.</p>
+            <div class="modal-actions">
+              <a class="button primary" href="./collect-homebrew-data.sh" download>Download collector script</a>
+            </div>
+            <div class="command">
+              <code id="oneLiner">curl -fsSL https://tools.gocalf.com/homebrew-review/collect-homebrew-data.sh | bash</code>
+              <button id="copyCommand" type="button">Copy</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    const state = {
+      nodes: [],
+      edges: [],
+      byId: new Map(),
+      summary: null,
+      selected: null,
+      reviewMode: 'requested',
+      reviewQuery: '',
+      reviewSort: { key: 'name', dir: 'asc' },
+      expanded: new Set(),
+      mapFilter: 'all',
+      mapQuery: '',
+      transform: { x: 0, y: 0, scale: 1 },
+      panning: false,
+      draggingNode: null,
+      lastPointer: null
+    };
+
+    const canvas = document.getElementById('graph');
+    const ctx = canvas.getContext('2d');
+    const wrap = canvas.parentElement;
+
+    const colors = {
+      requested: '#0f766e',
+      dependency: '#66727a',
+      leaf: '#b47b00',
+      cask: '#4b62aa',
+      outdated: '#b4232b',
+      focus: '#d39b2c',
+      line: 'rgba(103, 114, 122, 0.28)'
+    };
+
+    function escapeText(value) {
+      return String(value ?? '');
+    }
+
+    function formatDate(seconds) {
+      if (!seconds) return '';
+      const date = new Date(Number(seconds) * 1000);
+      if (Number.isNaN(date.getTime())) return '';
+      return date.toISOString().slice(0, 10);
+    }
+
+    function buildGraph(payload) {
+      if (!payload || !payload.installed || !Array.isArray(payload.installed.formulae)) {
+        throw new Error('This file does not look like Homebrew Package Review data.');
+      }
+
+      const formulae = payload.installed.formulae;
+      const caskTokens = Array.isArray(payload.casks)
+        ? payload.casks
+        : (payload.installed.casks || []).map(c => c.token).filter(Boolean);
+      const outdated = payload.outdated || { formulae: [], casks: [] };
+      const byName = new Map(formulae.map(f => [f.name, f.full_name]));
+      const byFull = new Map(formulae.map(f => [f.full_name, f]));
+      const outdatedFormulae = new Map();
+
+      for (const item of outdated.formulae || []) {
+        const id = byName.get(item.name) || item.name;
+        outdatedFormulae.set(id, item);
+      }
+
+      const outdatedCasks = new Map((outdated.casks || []).map(item => [item.name, item]));
+      const depsBySource = new Map();
+      const dependentsByTarget = new Map();
+      const edgeSpecs = [];
+
+      for (const f of formulae) {
+        const source = f.full_name;
+        depsBySource.set(source, []);
+        for (const dep of f.dependencies || []) {
+          const target = byName.get(dep) || (byFull.has(dep) ? dep : null);
+          if (!target) continue;
+          edgeSpecs.push({ source, target });
+          depsBySource.get(source).push(target);
+          if (!dependentsByTarget.has(target)) dependentsByTarget.set(target, []);
+          dependentsByTarget.get(target).push(source);
+        }
+      }
+
+      const nodes = formulae.map(f => {
+        const id = f.full_name;
+        const installed = (f.installed || [])[0] || {};
+        const out = outdatedFormulae.get(id);
+        const dependents = (dependentsByTarget.get(id) || []).sort();
+        const deps = (depsBySource.get(id) || []).sort();
+        const requested = Boolean(installed.installed_on_request);
+        return {
+          id,
+          name: f.name,
+          fullName: id,
+          type: 'formula',
+          version: installed.version || f.versions?.stable || '',
+          installedTime: installed.time || null,
+          installedDate: formatDate(installed.time),
+          currentVersion: out?.current_version || null,
+          outdated: Boolean(out),
+          requested,
+          asDependency: Boolean(installed.installed_as_dependency),
+          leaf: dependents.length === 0,
+          orphanCandidate: dependents.length === 0 && !requested,
+          kegOnly: Boolean(f.keg_only),
+          tap: f.tap || 'homebrew/core',
+          desc: f.desc || '',
+          deps,
+          dependents,
+          depCount: deps.length,
+          dependentCount: dependents.length,
+          x: 0,
+          y: 0,
+          visible: true
+        };
+      });
+
+      for (const token of caskTokens) {
+        const out = outdatedCasks.get(token);
+        nodes.push({
+          id: `cask:${token}`,
+          name: token,
+          fullName: token,
+          type: 'cask',
+          version: '',
+          installedTime: null,
+          installedDate: '',
+          currentVersion: out?.current_version || null,
+          outdated: Boolean(out),
+          requested: true,
+          asDependency: false,
+          leaf: true,
+          orphanCandidate: false,
+          kegOnly: false,
+          tap: 'homebrew/cask',
+          desc: 'Installed Homebrew cask',
+          deps: [],
+          dependents: [],
+          depCount: 0,
+          dependentCount: 0,
+          x: 0,
+          y: 0,
+          visible: true
+        });
+      }
+
+      const byId = new Map(nodes.map(n => [n.id, n]));
+      const edges = edgeSpecs
+        .map(e => ({ source: byId.get(e.source), target: byId.get(e.target) }))
+        .filter(e => e.source && e.target);
+
+      const summary = summarize(nodes, edges);
+      return { nodes, edges, byId, summary };
+    }
+
+    function summarize(nodes, edges) {
+      const depsBySource = new Map(nodes.map(n => [n.id, n.deps || []]));
+
+      function closureSize(id) {
+        const seen = new Set();
+        const queue = [...(depsBySource.get(id) || [])];
+        while (queue.length) {
+          const item = queue.shift();
+          if (seen.has(item)) continue;
+          seen.add(item);
+          queue.push(...(depsBySource.get(item) || []));
+        }
+        return seen.size;
+      }
+
+      const formulae = nodes.filter(n => n.type === 'formula');
+      const casks = nodes.filter(n => n.type === 'cask');
+      const topRoots = formulae
+        .filter(n => n.requested)
+        .map(n => ({ id: n.id, name: n.name, closure: closureSize(n.id) }))
+        .sort((a, b) => b.closure - a.closure || a.name.localeCompare(b.name))
+        .slice(0, 12);
+      const topSharedDeps = formulae
+        .slice()
+        .sort((a, b) => b.dependentCount - a.dependentCount || a.name.localeCompare(b.name))
+        .slice(0, 15)
+        .map(n => ({ id: n.id, name: n.name, dependents: n.dependentCount }));
+
+      return {
+        formulaCount: formulae.length,
+        caskCount: casks.length,
+        edgeCount: edges.length,
+        requestedFormulaCount: formulae.filter(n => n.requested).length,
+        leafFormulaCount: formulae.filter(n => n.leaf).length,
+        orphanCandidateCount: formulae.filter(n => n.orphanCandidate).length,
+        outdatedFormulaCount: formulae.filter(n => n.outdated).length,
+        outdatedCaskCount: casks.filter(n => n.outdated).length,
+        topRoots,
+        topSharedDeps
+      };
+    }
+
+    async function loadFile(file) {
+      const payload = JSON.parse(await file.text());
+      const graph = buildGraph(payload);
+      state.nodes = graph.nodes;
+      state.edges = graph.edges;
+      state.byId = graph.byId;
+      state.summary = graph.summary;
+      state.selected = state.nodes.find(n => n.requested && n.type === 'formula') || state.nodes[0] || null;
+      state.expanded.clear();
+      document.getElementById('status').textContent = `Loaded ${file.name}`;
+      document.getElementById('collectorModal').classList.add('hidden');
+      renderAll();
+    }
+
+    function renderAll() {
+      renderStats();
+      updateMapVisibility();
+      renderReview({ keepScroll: false });
+      renderDetail();
+      renderSideLists();
+      resizeCanvas();
+    }
+
+    function renderStats() {
+      const s = state.summary;
+      const stats = document.getElementById('stats');
+      if (!s) {
+        stats.innerHTML = '';
+        return;
+      }
+      const items = [
+        [s.formulaCount, 'formulae'],
+        [s.caskCount, 'casks'],
+        [s.edgeCount, 'edges'],
+        [s.requestedFormulaCount, 'requested'],
+        [s.leafFormulaCount, 'leaves'],
+        [s.orphanCandidateCount, 'cleanup'],
+        [s.outdatedFormulaCount, 'old formulae'],
+        [s.outdatedCaskCount, 'old casks']
+      ];
+      stats.innerHTML = items.map(([n, label]) => `<div class="stat"><b>${n}</b><span>${label}</span></div>`).join('');
+    }
+
+    function reviewMatchesMode(n) {
+      if (state.reviewMode === 'requested') return n.type === 'formula' && n.requested;
+      if (state.reviewMode === 'auto') return n.type === 'formula' && !n.requested;
+      if (state.reviewMode === 'leaves') return n.type === 'formula' && n.leaf;
+      if (state.reviewMode === 'outdated') return n.outdated;
+      if (state.reviewMode === 'casks') return n.type === 'cask';
+      return true;
+    }
+
+    function matchesQuery(n, query) {
+      if (!query) return true;
+      return `${n.name} ${n.fullName} ${n.tap} ${n.desc}`.toLowerCase().includes(query);
+    }
+
+    function reviewSortValue(n, key) {
+      if (key === 'installed') return Number(n.installedTime || 0);
+      if (key === 'deps') return Number(n.depCount || 0);
+      if (key === 'used') return Number(n.dependentCount || 0);
+      return String(n.name || '').toLowerCase();
+    }
+
+    function compareReview(a, b) {
+      const av = reviewSortValue(a, state.reviewSort.key);
+      const bv = reviewSortValue(b, state.reviewSort.key);
+      let result = typeof av === 'number' && typeof bv === 'number'
+        ? av - bv
+        : String(av).localeCompare(String(bv));
+      if (result === 0) result = a.name.localeCompare(b.name);
+      return state.reviewSort.dir === 'desc' ? -result : result;
+    }
+
+    function reviewState(n) {
+      if (n.type === 'cask') return 'cask';
+      return n.requested ? 'asked' : 'auto';
+    }
+
+    function renderReview(options = {}) {
+      const list = document.getElementById('reviewList');
+      const previousScroll = options.keepScroll !== false ? list.scrollTop : 0;
+      updateSortHeaders();
+      list.textContent = '';
+
+      const items = state.nodes
+        .filter(n => reviewMatchesMode(n) && matchesQuery(n, state.reviewQuery))
+        .sort(compareReview);
+
+      if (!state.nodes.length) {
+        list.innerHTML = '<div class="empty-state"><p>Load a Homebrew collector JSON file to review packages locally in this browser.</p><button class="primary" type="button" data-open-collector>Load data</button></div>';
+        return;
+      }
+
+      if (!items.length) {
+        list.innerHTML = '<p class="muted">No packages match this filter.</p>';
+        return;
+      }
+
+      const frag = document.createDocumentFragment();
+      for (const n of items) frag.appendChild(packageRow(n));
+      list.appendChild(frag);
+      list.scrollTop = previousScroll;
+    }
+
+    function updateSortHeaders() {
+      document.querySelectorAll('.sort-head').forEach(btn => {
+        const active = btn.dataset.sort === state.reviewSort.key;
+        btn.classList.toggle('active', active);
+        btn.classList.toggle('desc', active && state.reviewSort.dir === 'desc');
+        btn.setAttribute('aria-sort', active ? (state.reviewSort.dir === 'desc' ? 'descending' : 'ascending') : 'none');
+      });
+    }
+
+    function packageRow(n) {
+      const item = document.createElement('div');
+      item.className = `review-item ${n === state.selected ? 'selected' : ''}`;
+
+      const row = document.createElement('div');
+      row.className = 'review-row';
+      row.addEventListener('click', () => selectNode(n, { keepScroll: true }));
+
+      const toggle = document.createElement('button');
+      toggle.type = 'button';
+      toggle.className = 'toggle';
+      toggle.textContent = state.expanded.has(n.id) ? '-' : '+';
+      toggle.addEventListener('click', ev => {
+        ev.stopPropagation();
+        state.expanded.has(n.id) ? state.expanded.delete(n.id) : state.expanded.add(n.id);
+        renderReview({ keepScroll: true });
+      });
+
+      const name = twoLine('pkg-name', n.name, tagText(n));
+      const version = twoLine('pkg-version', n.version || 'n/a', n.currentVersion ? `current ${n.currentVersion}` : n.tap);
+      const installed = twoLine('pkg-installed', n.installedDate || 'unknown', n.installedTime ? 'receipt date' : 'no receipt');
+      const info = twoLine('pkg-info', n.desc || 'No description', n.fullName);
+      const dep = textSpan('num', n.depCount);
+      const used = textSpan('num', n.dependentCount);
+      const status = textSpan('num', reviewState(n));
+
+      row.append(toggle, name, version, installed, info, dep, used, status);
+      item.appendChild(row);
+
+      if (state.expanded.has(n.id)) {
+        const expand = document.createElement('div');
+        expand.className = 'expand';
+        expand.append(treeLine('Depends on', n.deps), treeLine('Used by', n.dependents));
+        item.appendChild(expand);
+      }
+      return item;
+    }
+
+    function tagText(n) {
+      const tags = [];
+      if (n.outdated) tags.push('outdated');
+      if (n.leaf && n.type === 'formula') tags.push('leaf');
+      if (n.kegOnly) tags.push('keg-only');
+      if (n.orphanCandidate) tags.push('cleanup');
+      return tags;
+    }
+
+    function twoLine(className, primary, secondary) {
+      const wrap = document.createElement('span');
+      wrap.className = className;
+      const b = document.createElement('b');
+      b.textContent = escapeText(primary);
+      wrap.appendChild(b);
+      if (Array.isArray(secondary)) {
+        const tags = document.createElement('span');
+        tags.className = 'tags';
+        for (const text of secondary) {
+          const tag = document.createElement('span');
+          tag.className = `tag ${text === 'outdated' ? 'hot' : ''}`;
+          tag.textContent = text;
+          tags.appendChild(tag);
+        }
+        wrap.appendChild(tags);
+      } else {
+        const small = document.createElement('span');
+        small.textContent = escapeText(secondary || '');
+        wrap.appendChild(small);
+      }
+      return wrap;
+    }
+
+    function textSpan(className, text) {
+      const span = document.createElement('span');
+      span.className = className;
+      span.textContent = escapeText(text);
+      return span;
+    }
+
+    function treeLine(label, ids) {
+      const line = document.createElement('div');
+      line.className = 'tree-line';
+      const l = textSpan('tree-label', label);
+      const items = document.createElement('span');
+      items.className = 'tree-items';
+      if (!ids.length) {
+        items.appendChild(textSpan('muted', 'None'));
+      } else {
+        for (const id of ids.slice(0, 24)) {
+          const n = state.byId.get(id);
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.textContent = n?.name || id;
+          btn.addEventListener('click', ev => {
+            ev.stopPropagation();
+            if (n) selectNode(n, { keepScroll: true });
+          });
+          items.appendChild(btn);
+        }
+      }
+      line.append(l, items);
+      return line;
+    }
+
+    function renderDetail() {
+      const detail = document.getElementById('detail');
+      const n = state.selected;
+      if (!n) {
+        detail.innerHTML = '<h2>No package selected</h2><p class="muted">Load data and select a row or map node.</p>';
+        return;
+      }
+      const tags = tagText(n).map(t => `<span class="tag ${t === 'outdated' ? 'hot' : ''}">${t}</span>`).join('');
+      detail.innerHTML = `
+        <h2>${escapeHtml(n.name)}</h2>
+        <p class="muted">${escapeHtml(n.fullName)}</p>
+        <div class="tags">${tags}</div>
+        <p>${escapeHtml(n.desc || 'No description.')}</p>
+        <p class="muted">Installed: ${escapeHtml(n.installedDate || 'unknown')} · Version: ${escapeHtml(n.version || 'n/a')}</p>
+        <p class="muted">Depends on ${n.depCount}; used by ${n.dependentCount}</p>
+      `;
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, ch => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      }[ch]));
+    }
+
+    function renderSideLists() {
+      const topRoots = document.getElementById('topRoots');
+      const topShared = document.getElementById('topShared');
+      const s = state.summary;
+      if (!s) {
+        topRoots.textContent = '';
+        topShared.textContent = '';
+        return;
+      }
+      topRoots.textContent = '';
+      topShared.textContent = '';
+      for (const item of s.topRoots) topRoots.appendChild(sideButton(item.id, `${item.name} · ${item.closure} deps`));
+      for (const item of s.topSharedDeps) topShared.appendChild(sideButton(item.id, `${item.name} · used by ${item.dependents}`));
+    }
+
+    function sideButton(id, text) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = text;
+      btn.addEventListener('click', () => {
+        const n = state.byId.get(id);
+        if (n) selectNode(n, { keepScroll: true, focusMap: true });
+      });
+      return btn;
+    }
+
+    function selectNode(n, options = {}) {
+      state.selected = n;
+      renderDetail();
+      renderReview({ keepScroll: options.keepScroll !== false });
+      if (options.focusMap) focusMapNode(n);
+    }
+
+    function mapMatchesFilter(n) {
+      if (state.mapFilter === 'requested') return n.requested && n.type === 'formula';
+      if (state.mapFilter === 'leaf') return n.leaf && n.type === 'formula';
+      if (state.mapFilter === 'shared') return n.dependentCount >= 5;
+      if (state.mapFilter === 'outdated') return n.outdated;
+      return true;
+    }
+
+    function updateMapVisibility() {
+      for (const n of state.nodes) n.visible = mapMatchesFilter(n) && matchesQuery(n, state.mapQuery);
+      applyDagLayout();
+    }
+
+    function applyDagLayout() {
+      const visible = state.nodes.filter(n => n.visible);
+      const visibleSet = new Set(visible);
+      const visibleEdges = state.edges.filter(e => visibleSet.has(e.source) && visibleSet.has(e.target));
+      const hasVisibleDependent = new Set(visibleEdges.map(e => e.target.id));
+      const roots = visible.filter(n => n.requested || n.type === 'cask' || !hasVisibleDependent.has(n.id));
+      const depth = new Map();
+      roots.forEach(n => depth.set(n.id, 0));
+      if (!roots.length && visible.length) depth.set(visible[0].id, 0);
+
+      for (let pass = 0; pass < visible.length; pass++) {
+        let changed = false;
+        for (const e of visibleEdges) {
+          if (!depth.has(e.source.id)) continue;
+          const next = Math.min(12, depth.get(e.source.id) + 1);
+          if (!depth.has(e.target.id) || next > depth.get(e.target.id)) {
+            depth.set(e.target.id, next);
+            changed = true;
+          }
+        }
+        if (!changed) break;
+      }
+
+      visible.forEach(n => {
+        if (!depth.has(n.id)) depth.set(n.id, 0);
+      });
+
+      const columns = new Map();
+      for (const n of visible) {
+        const d = depth.get(n.id);
+        if (!columns.has(d)) columns.set(d, []);
+        columns.get(d).push(n);
+      }
+
+      const levels = [...columns.keys()].sort((a, b) => a - b);
+      const columnGap = 210;
+      const rowGap = 38;
+      const totalWidth = Math.max(0, (levels.length - 1) * columnGap);
+      levels.forEach((level, columnIndex) => {
+        const col = columns.get(level).sort((a, b) =>
+          Number(b.requested) - Number(a.requested) ||
+          b.dependentCount - a.dependentCount ||
+          a.name.localeCompare(b.name)
+        );
+        const x = columnIndex * columnGap - totalWidth / 2;
+        col.forEach((n, rowIndex) => {
+          n.x = x;
+          n.y = (rowIndex - (col.length - 1) / 2) * rowGap;
+        });
+      });
+    }
+
+    function resizeCanvas() {
+      const dpr = window.devicePixelRatio || 1;
+      const rect = wrap.getBoundingClientRect();
+      canvas.width = Math.max(1, Math.floor(rect.width * dpr));
+      canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+      canvas.style.width = `${rect.width}px`;
+      canvas.style.height = `${rect.height}px`;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    function radius(n) {
+      if (n.type === 'cask') return 7;
+      return 5 + Math.min(13, Math.sqrt(n.dependentCount + 1) * 2.1);
+    }
+
+    function nodeColor(n) {
+      if (n.type === 'cask') return colors.cask;
+      if (n.leaf) return colors.leaf;
+      if (n.requested) return colors.requested;
+      return colors.dependency;
+    }
+
+    function drawMap() {
+      const rect = wrap.getBoundingClientRect();
+      ctx.clearRect(0, 0, rect.width, rect.height);
+      ctx.save();
+      ctx.translate(rect.width / 2 + state.transform.x, rect.height / 2 + state.transform.y);
+      ctx.scale(state.transform.scale, state.transform.scale);
+
+      const visible = state.nodes.filter(n => n.visible);
+      const visibleSet = new Set(visible);
+      for (const e of state.edges) {
+        if (!visibleSet.has(e.source) || !visibleSet.has(e.target)) continue;
+        const active = state.selected && (e.source === state.selected || e.target === state.selected);
+        ctx.strokeStyle = active ? 'rgba(211,155,44,.86)' : colors.line;
+        ctx.lineWidth = active ? 2.2 / state.transform.scale : 1 / state.transform.scale;
+        const sx = e.source.x + radius(e.source) + 2;
+        const sy = e.source.y;
+        const tx = e.target.x - radius(e.target) - 2;
+        const ty = e.target.y;
+        const mid = Math.max(34, Math.abs(tx - sx) * 0.45);
+        ctx.beginPath();
+        ctx.moveTo(sx, sy);
+        ctx.bezierCurveTo(sx + mid, sy, tx - mid, ty, tx, ty);
+        ctx.stroke();
+      }
+
+      for (const n of visible) {
+        const r = radius(n);
+        ctx.beginPath();
+        ctx.fillStyle = nodeColor(n);
+        ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
+        ctx.fill();
+        if (n.outdated) {
+          ctx.strokeStyle = colors.outdated;
+          ctx.lineWidth = 2.2 / state.transform.scale;
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, r + 3.5, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        if (n === state.selected) {
+          ctx.strokeStyle = colors.focus;
+          ctx.lineWidth = 3 / state.transform.scale;
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, r + 7, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      }
+
+      if (state.transform.scale > 0.65) {
+        ctx.font = `${12 / state.transform.scale}px Aptos, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        for (const n of visible) {
+          if (n.dependentCount < 6 && n !== state.selected && !n.requested) continue;
+          ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--ink').trim() || '#1f2933';
+          ctx.fillText(n.name, n.x, n.y + radius(n) + 5);
+        }
+      }
+      ctx.restore();
+    }
+
+    function screenToWorld(clientX, clientY) {
+      const rect = wrap.getBoundingClientRect();
+      return {
+        x: (clientX - rect.left - rect.width / 2 - state.transform.x) / state.transform.scale,
+        y: (clientY - rect.top - rect.height / 2 - state.transform.y) / state.transform.scale
+      };
+    }
+
+    function nearestNode(clientX, clientY) {
+      const p = screenToWorld(clientX, clientY);
+      let best = null;
+      let bestDist = Infinity;
+      for (const n of state.nodes) {
+        if (!n.visible) continue;
+        const d = Math.hypot(n.x - p.x, n.y - p.y);
+        if (d < bestDist) {
+          best = n;
+          bestDist = d;
+        }
+      }
+      return best && bestDist < (radius(best) + 9) / state.transform.scale ? best : null;
+    }
+
+    function focusMapNode(n) {
+      state.transform.x = -n.x * state.transform.scale;
+      state.transform.y = -n.y * state.transform.scale;
+    }
+
+    function mapLoop() {
+      drawMap();
+      requestAnimationFrame(mapLoop);
+    }
+
+    function setupEvents() {
+      const fileInput = document.getElementById('fileInput');
+      const dropzone = document.getElementById('dropzone');
+      const modal = document.getElementById('collectorModal');
+      document.getElementById('openCollector').addEventListener('click', () => {
+        modal.classList.remove('hidden');
+      });
+      document.addEventListener('click', ev => {
+        if (ev.target.closest('[data-open-collector]')) modal.classList.remove('hidden');
+      });
+      document.getElementById('closeCollector').addEventListener('click', () => {
+        modal.classList.add('hidden');
+      });
+      modal.addEventListener('click', ev => {
+        if (ev.target === modal) modal.classList.add('hidden');
+      });
+      document.addEventListener('keydown', ev => {
+        if (ev.key === 'Escape') modal.classList.add('hidden');
+      });
+      document.getElementById('chooseFile').addEventListener('click', () => {
+        fileInput.value = '';
+        fileInput.click();
+      });
+      fileInput.addEventListener('change', () => {
+        if (fileInput.files?.[0]) loadFile(fileInput.files[0]).catch(showError);
+      });
+      for (const event of ['dragenter', 'dragover']) {
+        dropzone.addEventListener(event, ev => {
+          ev.preventDefault();
+          dropzone.classList.add('dragover');
+        });
+      }
+      for (const event of ['dragleave', 'drop']) {
+        dropzone.addEventListener(event, ev => {
+          ev.preventDefault();
+          dropzone.classList.remove('dragover');
+        });
+      }
+      dropzone.addEventListener('drop', ev => {
+        const file = ev.dataTransfer.files?.[0];
+        if (file) loadFile(file).catch(showError);
+      });
+
+      document.querySelectorAll('.tab').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b === btn));
+          document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === `${btn.dataset.view}View`));
+          if (btn.dataset.view === 'map') requestAnimationFrame(resizeCanvas);
+        });
+      });
+
+      document.getElementById('reviewMode').addEventListener('change', ev => {
+        state.reviewMode = ev.target.value;
+        state.expanded.clear();
+        renderReview({ keepScroll: false });
+      });
+      document.getElementById('reviewSearch').addEventListener('input', ev => {
+        state.reviewQuery = ev.target.value.trim().toLowerCase();
+        renderReview({ keepScroll: false });
+      });
+      document.querySelectorAll('.sort-head').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const key = btn.dataset.sort;
+          state.reviewSort = {
+            key,
+            dir: state.reviewSort.key === key && state.reviewSort.dir === 'asc' ? 'desc' : 'asc'
+          };
+          renderReview({ keepScroll: false });
+        });
+      });
+
+      document.getElementById('mapSearch').addEventListener('input', ev => {
+        state.mapQuery = ev.target.value.trim().toLowerCase();
+        updateMapVisibility();
+      });
+      document.getElementById('mapFilters').addEventListener('click', ev => {
+        const btn = ev.target.closest('button[data-filter]');
+        if (!btn) return;
+        state.mapFilter = btn.dataset.filter;
+        document.querySelectorAll('#mapFilters button').forEach(b => b.classList.toggle('active', b === btn));
+        updateMapVisibility();
+      });
+      document.getElementById('resetMap').addEventListener('click', () => {
+        state.transform = { x: 0, y: 0, scale: 1 };
+        state.mapFilter = 'all';
+        state.mapQuery = '';
+        document.getElementById('mapSearch').value = '';
+        document.querySelectorAll('#mapFilters button').forEach(b => b.classList.toggle('active', b.dataset.filter === 'all'));
+        updateMapVisibility();
+      });
+
+      canvas.addEventListener('pointerdown', ev => {
+        canvas.setPointerCapture(ev.pointerId);
+        state.lastPointer = { x: ev.clientX, y: ev.clientY };
+        const n = nearestNode(ev.clientX, ev.clientY);
+        if (n) {
+          state.draggingNode = n;
+          selectNode(n, { keepScroll: true });
+        } else {
+          state.panning = true;
+          canvas.classList.add('dragging');
+        }
+      });
+      canvas.addEventListener('pointermove', ev => {
+        if (!state.lastPointer) return;
+        if (state.draggingNode) {
+          const p = screenToWorld(ev.clientX, ev.clientY);
+          state.draggingNode.x = p.x;
+          state.draggingNode.y = p.y;
+        } else if (state.panning) {
+          state.transform.x += ev.clientX - state.lastPointer.x;
+          state.transform.y += ev.clientY - state.lastPointer.y;
+        }
+        state.lastPointer = { x: ev.clientX, y: ev.clientY };
+      });
+      canvas.addEventListener('pointerup', () => {
+        state.draggingNode = null;
+        state.panning = false;
+        state.lastPointer = null;
+        canvas.classList.remove('dragging');
+      });
+      canvas.addEventListener('wheel', ev => {
+        ev.preventDefault();
+        state.transform.scale = Math.max(0.25, Math.min(3.2, state.transform.scale * (ev.deltaY < 0 ? 1.08 : 0.92)));
+      }, { passive: false });
+
+      document.getElementById('copyCommand').addEventListener('click', async () => {
+        const text = document.getElementById('oneLiner').textContent;
+        try {
+          await navigator.clipboard.writeText(text);
+          document.getElementById('copyCommand').textContent = 'Copied';
+          setTimeout(() => { document.getElementById('copyCommand').textContent = 'Copy'; }, 1200);
+        } catch {
+          window.prompt('Copy this command:', text);
+        }
+      });
+
+      window.addEventListener('resize', resizeCanvas);
+    }
+
+    function showError(error) {
+      document.getElementById('status').textContent = error.message || String(error);
+    }
+
+    setupEvents();
+    renderStats();
+    renderReview();
+    resizeCanvas();
+    mapLoop();
+  </script>
+</body>
+</html>

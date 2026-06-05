@@ -25,6 +25,10 @@ This repository hosts small browser-native tools through GitHub Pages.
 - Validate embedded JavaScript after edits.
 - Update the root `index.html` and `README.md` when adding, renaming, or removing a tool.
 
+## Git Conventions
+
+- Use semantic commit messages following Conventional Commits, for example `feat: add json inspector`, `fix: correct clipboard parsing`, or `docs: update tool list`.
+
 ## GitHub Pages
 
 The expected Pages setup is:
