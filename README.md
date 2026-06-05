@@ -14,12 +14,11 @@ The root `index.html` is the catalog page. Each tool lives in a top-level folder
 
 ## GitHub Pages
 
-This site is configured for the custom domain:
+This site is configured for the custom domain `tools.gocalf.com`. Tool URLs follow the top-level folder name:
 
 ```text
 https://tools.gocalf.com/
-https://tools.gocalf.com/json-inspector/
-https://tools.gocalf.com/homebrew-review/
+https://tools.gocalf.com/<tool-name>/
 ```
 
 The root `CNAME` file must remain present for GitHub Pages to keep the custom domain.
