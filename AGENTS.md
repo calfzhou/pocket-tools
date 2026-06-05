@@ -2,6 +2,10 @@
 
 This repository hosts small browser-native tools through GitHub Pages.
 
+`README.md` is for users of the public site. Keep it concise: link to the site, list available tools, and explain user-facing privacy expectations.
+
+`AGENTS.md` is for AI/developer maintenance guidance. Put repository structure, implementation conventions, deployment assumptions, and commit rules here instead of expanding the README with maintainer details.
+
 ## Project Shape
 
 - The root `index.html` is the catalog page.
@@ -20,6 +24,7 @@ This repository hosts small browser-native tools through GitHub Pages.
 ## Editing Conventions
 
 - Keep changes scoped to the relevant tool folder plus the root catalog/README when needed.
+- Keep `README.md` user-facing. Avoid detailed repository trees, deployment checklists, or AI/developer instructions there.
 - Use plain JavaScript and CSS unless an existing tool already uses a framework.
 - Prefer accessible controls with labels, keyboard support, and readable light/dark contrast.
 - Validate embedded JavaScript after edits.
