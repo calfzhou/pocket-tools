@@ -5,6 +5,7 @@ Small browser-native tools for inspecting, debugging, and converting everyday da
 ## Tools
 
 - [JSON Inspector](./json-inspector/) - inspect JSON or JSONC, decode multiline strings and embedded JSON strings, and export as pretty JSON or YAML.
+- [Clipboard Debug](./clipboard-debug/) - paste content and inspect the raw text/html and text/plain clipboard data, with HTML sanitization and tag detection.
 
 ## Organization
 
@@ -14,6 +15,8 @@ Each tool lives in a top-level folder with an `index.html` file:
 pocket-tools/
   CNAME
   index.html
+  clipboard-debug/
+    index.html
   json-inspector/
     index.html
 ```

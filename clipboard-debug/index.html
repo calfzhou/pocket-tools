@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head><title>Clipboard Debug</title></head>
+<body>
+<h2>Paste into the box below, then check the output</h2>
+<div id="target" contenteditable="true" style="border:2px solid #333; min-height:100px; padding:10px; white-space:pre-wrap; margin-bottom:20px;"></div>
+<h3>text/html from clipboard:</h3>
+<pre id="html-output" style="background:#f0f0f0; padding:10px; white-space:pre-wrap; word-break:break-all;"></pre>
+<h3>text/plain from clipboard:</h3>
+<pre id="text-output" style="background:#f0f0f0; padding:10px; white-space:pre-wrap;"></pre>
+<h3>normalizeHtmlLinks result:</h3>
+<pre id="normalized-output" style="background:#e0ffe0; padding:10px; white-space:pre-wrap; word-break:break-all;"></pre>
+<h3>hasHtmlTags on normalized:</h3>
+<pre id="tags-output" style="background:#ffe0e0; padding:10px;"></pre>
+<script>
+document.getElementById('target').addEventListener('paste', function(e) {
+  var html = e.clipboardData.getData('text/html');
+  var text = e.clipboardData.getData('text/plain');
+  document.getElementById('html-output').textContent = html || '(empty)';
+  document.getElementById('text-output').textContent = text || '(empty)';
+
+  // Inline the sanitize logic
+  var allowedTags = new Set(['A','B','STRONG','I','EM','U','P','BR','UL','OL','LI']);
+  var cleanedHtml = (html || '').replace(/<!--[\s\S]*?-->/g, '');
+  var doc = new DOMParser().parseFromString(cleanedHtml, 'text/html');
+  var elements = Array.from(doc.body.querySelectorAll('*'));
+  elements.forEach(function(element) {
+    if (!allowedTags.has(element.tagName)) {
+      var parent = element.parentNode;
+      if (parent) {
+        while (element.firstChild) parent.insertBefore(element.firstChild, element);
+        parent.removeChild(element);
+      }
+      return;
+    }
+    Array.from(element.attributes).forEach(function(attr) {
+      if (element.tagName === 'A' && attr.name === 'href') return;
+      element.removeAttribute(attr.name);
+    });
+  });
+  // Unwrap top-level <p>
+  var topPs = Array.from(doc.body.children).filter(function(el) { return el.tagName === 'P'; });
+  if (topPs.length > 0 && topPs.length === doc.body.children.length) {
+    var fragments = [];
+    topPs.forEach(function(p) { var inner = p.innerHTML.trim(); if (inner) fragments.push(inner); });
+    doc.body.innerHTML = fragments.join('<br>');
+  }
+  var sanitized = doc.body.innerHTML.replace(/&nbsp;/g, ' ').replace(/ /g, ' ').trim();
+  var normalized = sanitized || '(null)';
+  document.getElementById('normalized-output').textContent = normalized;
+  document.getElementById('tags-output').textContent = String(/<[a-z][a-z0-9]*[\s>\/]/i.test(normalized));
+});
+</script>
+</body>
+</html>
