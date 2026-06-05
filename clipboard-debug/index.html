@@ -1,55 +1,651 @@
-<!DOCTYPE html>
-<html>
-<head><title>Clipboard Debug</title></head>
-<body>
-<h2>Paste into the box below, then check the output</h2>
-<div id="target" contenteditable="true" style="border:2px solid #333; min-height:100px; padding:10px; white-space:pre-wrap; margin-bottom:20px;"></div>
-<h3>text/html from clipboard:</h3>
-<pre id="html-output" style="background:#f0f0f0; padding:10px; white-space:pre-wrap; word-break:break-all;"></pre>
-<h3>text/plain from clipboard:</h3>
-<pre id="text-output" style="background:#f0f0f0; padding:10px; white-space:pre-wrap;"></pre>
-<h3>normalizeHtmlLinks result:</h3>
-<pre id="normalized-output" style="background:#e0ffe0; padding:10px; white-space:pre-wrap; word-break:break-all;"></pre>
-<h3>hasHtmlTags on normalized:</h3>
-<pre id="tags-output" style="background:#ffe0e0; padding:10px;"></pre>
-<script>
-document.getElementById('target').addEventListener('paste', function(e) {
-  var html = e.clipboardData.getData('text/html');
-  var text = e.clipboardData.getData('text/plain');
-  document.getElementById('html-output').textContent = html || '(empty)';
-  document.getElementById('text-output').textContent = text || '(empty)';
-
-  // Inline the sanitize logic
-  var allowedTags = new Set(['A','B','STRONG','I','EM','U','P','BR','UL','OL','LI']);
-  var cleanedHtml = (html || '').replace(/<!--[\s\S]*?-->/g, '');
-  var doc = new DOMParser().parseFromString(cleanedHtml, 'text/html');
-  var elements = Array.from(doc.body.querySelectorAll('*'));
-  elements.forEach(function(element) {
-    if (!allowedTags.has(element.tagName)) {
-      var parent = element.parentNode;
-      if (parent) {
-        while (element.firstChild) parent.insertBefore(element.firstChild, element);
-        parent.removeChild(element);
-      }
-      return;
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Clipboard Debug</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #111412;
+      --panel: #181d1a;
+      --panel-2: #202720;
+      --ink: #edf2ec;
+      --muted: #a5afa6;
+      --line: #334039;
+      --line-strong: #526256;
+      --accent: #8fd8a8;
+      --accent-ink: #0d2718;
+      --accent-soft: rgba(143, 216, 168, 0.13);
+      --amber: #f2c766;
+      --blue: #8bc9ff;
+      --danger: #ff8c82;
+      --input: #0b0e0c;
+      --shadow: rgba(0, 0, 0, 0.28);
+      --mono: "Cascadia Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      --sans: Aptos, "Segoe UI", Verdana, sans-serif;
     }
-    Array.from(element.attributes).forEach(function(attr) {
-      if (element.tagName === 'A' && attr.name === 'href') return;
-      element.removeAttribute(attr.name);
+
+    @media (prefers-color-scheme: light) {
+      :root {
+        color-scheme: light;
+        --bg: #f4f3ec;
+        --panel: #fffefa;
+        --panel-2: #ece9dc;
+        --ink: #1c2520;
+        --muted: #626d65;
+        --line: #d4d0c3;
+        --line-strong: #a8a190;
+        --accent: #1d7f50;
+        --accent-ink: #f7fff9;
+        --accent-soft: rgba(29, 127, 80, 0.12);
+        --amber: #9b6500;
+        --blue: #0d669e;
+        --danger: #a42b24;
+        --input: #fffefa;
+        --shadow: rgba(45, 42, 31, 0.1);
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      min-height: 100%;
+    }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      background:
+        linear-gradient(135deg, rgba(143, 216, 168, 0.14), transparent 30rem),
+        radial-gradient(circle at 88% 8%, rgba(242, 199, 102, 0.16), transparent 24rem),
+        linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.08)),
+        var(--bg);
+      color: var(--ink);
+      font-family: var(--sans);
+      letter-spacing: 0;
+    }
+
+    button,
+    [contenteditable] {
+      font: inherit;
+    }
+
+    button {
+      min-height: 2.35rem;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--panel);
+      color: var(--ink);
+      padding: 0.45rem 0.72rem;
+      cursor: pointer;
+      transition: background 140ms ease, border-color 140ms ease, transform 140ms ease;
+    }
+
+    button:hover {
+      border-color: var(--line-strong);
+      background: var(--panel-2);
+    }
+
+    button:active {
+      transform: translateY(1px);
+    }
+
+    button.primary {
+      border-color: transparent;
+      background: var(--accent);
+      color: var(--accent-ink);
+      font-weight: 700;
+    }
+
+    .app {
+      width: min(86rem, calc(100% - 2rem));
+      margin: 0 auto;
+      padding: 1.25rem 0 2rem;
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 1rem;
+      align-items: end;
+      padding: 1.15rem 0 1.35rem;
+    }
+
+    header > * {
+      min-width: 0;
+    }
+
+    .back {
+      color: var(--muted);
+      font-size: 0.92rem;
+      text-decoration: none;
+    }
+
+    .back:hover {
+      color: var(--ink);
+    }
+
+    h1 {
+      margin: 0.45rem 0 0;
+      font-size: clamp(1.7rem, 4vw, 3.4rem);
+      line-height: 0.98;
+    }
+
+    .subtitle {
+      max-width: 44rem;
+      margin: 0.7rem 0 0;
+      color: var(--muted);
+      font-size: 1rem;
+      line-height: 1.55;
+      overflow-wrap: anywhere;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 0.5rem;
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(21rem, 0.84fr) minmax(0, 1.16fr);
+      gap: 1rem;
+      align-items: start;
+      min-width: 0;
+    }
+
+    .panel {
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(24, 29, 26, 0.84);
+      box-shadow: 0 1.2rem 3rem var(--shadow);
+      overflow: hidden;
+    }
+
+    @media (prefers-color-scheme: light) {
+      .panel {
+        background: rgba(255, 254, 250, 0.9);
+      }
+    }
+
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.8rem 0.9rem;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .panel-title {
+      min-width: 0;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 0.86rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .hint {
+      margin-top: 0.18rem;
+      color: var(--muted);
+      font-size: 0.84rem;
+      line-height: 1.35;
+      overflow-wrap: anywhere;
+    }
+
+    .dropzone {
+      min-height: 18rem;
+      margin: 0;
+      padding: 1rem;
+      outline: none;
+      background:
+        linear-gradient(90deg, rgba(143, 216, 168, 0.08) 1px, transparent 1px),
+        linear-gradient(rgba(143, 216, 168, 0.08) 1px, transparent 1px),
+        var(--input);
+      background-size: 1.5rem 1.5rem;
+      color: var(--ink);
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      line-height: 1.55;
+    }
+
+    .dropzone:empty::before {
+      content: "Paste formatted text, HTML, or rich content here";
+      color: var(--muted);
+    }
+
+    .dropzone:focus {
+      box-shadow: inset 0 0 0 2px var(--accent);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.65rem;
+      padding: 0.9rem;
+      border-top: 1px solid var(--line);
+    }
+
+    .stat {
+      min-width: 0;
+      padding: 0.75rem;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    .stat span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.76rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .stat strong {
+      display: block;
+      margin-top: 0.22rem;
+      overflow: hidden;
+      color: var(--ink);
+      font-size: 1.1rem;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .outputs {
+      display: grid;
+      gap: 1rem;
+      min-width: 0;
+    }
+
+    .output-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1rem;
+      min-width: 0;
+    }
+
+    .output-card {
+      min-width: 0;
+    }
+
+    .output-card.wide {
+      grid-column: 1 / -1;
+    }
+
+    .badge {
+      flex: 0 0 auto;
+      padding: 0.22rem 0.55rem;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 0.72rem;
+    }
+
+    .badge.good {
+      border-color: rgba(143, 216, 168, 0.5);
+      color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .badge.warn {
+      border-color: rgba(255, 140, 130, 0.44);
+      color: var(--danger);
+      background: rgba(255, 140, 130, 0.1);
+    }
+
+    pre {
+      min-height: 10rem;
+      max-height: 22rem;
+      margin: 0;
+      padding: 1rem;
+      overflow: auto;
+      background: var(--input);
+      color: var(--ink);
+      font-family: var(--mono);
+      font-size: 0.86rem;
+      line-height: 1.55;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      tab-size: 2;
+    }
+
+    .raw-html pre {
+      color: var(--blue);
+    }
+
+    .normalized pre {
+      color: var(--accent);
+    }
+
+    .plain pre {
+      color: var(--ink);
+    }
+
+    .tag-result {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 1rem;
+      align-items: center;
+      padding: 1rem;
+      background: var(--input);
+    }
+
+    .tag-result strong {
+      font-size: clamp(1.6rem, 5vw, 3rem);
+      line-height: 1;
+    }
+
+    .tag-result p {
+      margin: 0.35rem 0 0;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .signal {
+      width: 4.2rem;
+      height: 4.2rem;
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 50% 50%, currentColor 0 0.55rem, transparent 0.6rem),
+        conic-gradient(currentColor 0 var(--signal), transparent 0);
+      color: var(--danger);
+    }
+
+    .signal.good {
+      color: var(--accent);
+    }
+
+    .privacy {
+      margin-top: 1rem;
+      padding: 0.85rem 1rem;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: var(--muted);
+      background: rgba(0, 0, 0, 0.08);
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 900px) {
+      header,
+      main,
+      .output-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .toolbar {
+        justify-content: flex-start;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .app {
+        width: min(100% - 1rem, 86rem);
+        padding-top: 0.6rem;
+      }
+
+      .stats {
+        grid-template-columns: 1fr;
+      }
+
+      .panel-head,
+      .tag-result {
+        display: grid;
+        grid-template-columns: 1fr;
+      }
+
+      .panel-head {
+        align-items: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <a class="back" href="../">Back to Pocket Tools</a>
+        <h1>Clipboard Debug</h1>
+        <p class="subtitle">Paste once to inspect the browser clipboard payload: raw HTML, plain text, sanitized HTML, and whether the normalized result still contains tags.</p>
+      </div>
+      <div class="toolbar" aria-label="Clipboard actions">
+        <button type="button" id="focus-paste" class="primary">Paste Area</button>
+        <button type="button" id="clear">Clear</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="panel">
+        <div class="panel-head">
+          <div class="panel-title">
+            <h2>Paste Target</h2>
+            <div class="hint">Uses the browser paste event. Clipboard content stays in this page.</div>
+          </div>
+          <span class="badge" id="paste-state">waiting</span>
+        </div>
+        <div id="target" class="dropzone" contenteditable="true" role="textbox" aria-label="Paste target" spellcheck="false"></div>
+        <div class="stats" aria-label="Clipboard summary">
+          <div class="stat">
+            <span>HTML bytes</span>
+            <strong id="html-bytes">0</strong>
+          </div>
+          <div class="stat">
+            <span>Plain bytes</span>
+            <strong id="text-bytes">0</strong>
+          </div>
+          <div class="stat">
+            <span>Links</span>
+            <strong id="link-count">0</strong>
+          </div>
+          <div class="stat">
+            <span>Normalized</span>
+            <strong id="normalized-state">empty</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="outputs" aria-label="Clipboard outputs">
+        <div class="output-grid">
+          <article class="panel output-card raw-html">
+            <div class="panel-head">
+              <div class="panel-title">
+                <h2>text/html</h2>
+                <div class="hint">Raw HTML supplied by the paste event.</div>
+              </div>
+              <span class="badge" id="html-state">empty</span>
+            </div>
+            <pre id="html-output">(empty)</pre>
+          </article>
+
+          <article class="panel output-card plain">
+            <div class="panel-head">
+              <div class="panel-title">
+                <h2>text/plain</h2>
+                <div class="hint">Plain text fallback from the same payload.</div>
+              </div>
+              <span class="badge" id="text-state">empty</span>
+            </div>
+            <pre id="text-output">(empty)</pre>
+          </article>
+
+          <article class="panel output-card wide normalized">
+            <div class="panel-head">
+              <div class="panel-title">
+                <h2>Normalize HTML Links Result</h2>
+                <div class="hint">Allowed tags are preserved; other elements and attributes are stripped.</div>
+              </div>
+              <span class="badge" id="normalized-badge">null</span>
+            </div>
+            <pre id="normalized-output">(null)</pre>
+          </article>
+
+          <article class="panel output-card wide">
+            <div class="panel-head">
+              <div class="panel-title">
+                <h2>Has HTML Tags on Normalized</h2>
+                <div class="hint">Checks the normalized string with the same tag-detection regex.</div>
+              </div>
+              <span class="badge warn" id="tags-badge">false</span>
+            </div>
+            <div class="tag-result">
+              <div>
+                <strong id="tags-output">false</strong>
+                <p id="tags-note">Paste rich content to see whether sanitized output still has HTML tags.</p>
+              </div>
+              <div class="signal" id="tags-signal" style="--signal: 0turn" aria-hidden="true"></div>
+            </div>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <div class="privacy">This tool reads clipboard data only from paste events in your browser. It does not send clipboard content over the network.</div>
+  </div>
+
+  <script>
+    var target = document.getElementById('target');
+    var emptyText = '(empty)';
+    var nullText = '(null)';
+    var tagRegex = /<[a-z][a-z0-9]*[\s>\/]/i;
+
+    function setText(id, value) {
+      document.getElementById(id).textContent = value;
+    }
+
+    function setBadge(id, label, state) {
+      var badge = document.getElementById(id);
+      badge.textContent = label;
+      badge.classList.toggle('good', state === 'good');
+      badge.classList.toggle('warn', state === 'warn');
+    }
+
+    function byteLength(value) {
+      return new Blob([value || '']).size;
+    }
+
+    function countLinks(html) {
+      if (!html) return 0;
+      var doc = new DOMParser().parseFromString(html, 'text/html');
+      return doc.body.querySelectorAll('a[href]').length;
+    }
+
+    function normalizeHtmlLinks(html) {
+      var allowedTags = new Set(['A', 'B', 'STRONG', 'I', 'EM', 'U', 'P', 'BR', 'UL', 'OL', 'LI']);
+      var cleanedHtml = (html || '').replace(/<!--[\s\S]*?-->/g, '');
+      var doc = new DOMParser().parseFromString(cleanedHtml, 'text/html');
+      var elements = Array.from(doc.body.querySelectorAll('*'));
+
+      elements.forEach(function(element) {
+        if (!allowedTags.has(element.tagName)) {
+          var parent = element.parentNode;
+          if (parent) {
+            while (element.firstChild) parent.insertBefore(element.firstChild, element);
+            parent.removeChild(element);
+          }
+          return;
+        }
+
+        Array.from(element.attributes).forEach(function(attr) {
+          if (element.tagName === 'A' && attr.name === 'href') return;
+          element.removeAttribute(attr.name);
+        });
+      });
+
+      var topPs = Array.from(doc.body.children).filter(function(el) {
+        return el.tagName === 'P';
+      });
+
+      if (topPs.length > 0 && topPs.length === doc.body.children.length) {
+        var fragments = [];
+        topPs.forEach(function(p) {
+          var inner = p.innerHTML.trim();
+          if (inner) fragments.push(inner);
+        });
+        doc.body.innerHTML = fragments.join('<br>');
+      }
+
+      return doc.body.innerHTML.replace(/&nbsp;/g, ' ').replace(/\u00a0/g, ' ').trim();
+    }
+
+    function renderClipboard(html, text) {
+      var normalized = normalizeHtmlLinks(html) || nullText;
+      var hasTags = tagRegex.test(normalized);
+      var htmlPresent = Boolean(html);
+      var textPresent = Boolean(text);
+      var normalizedPresent = normalized !== nullText;
+      var links = countLinks(html);
+
+      setText('html-output', html || emptyText);
+      setText('text-output', text || emptyText);
+      setText('normalized-output', normalized);
+      setText('tags-output', String(hasTags));
+      setText('html-bytes', byteLength(html).toLocaleString());
+      setText('text-bytes', byteLength(text).toLocaleString());
+      setText('link-count', links.toLocaleString());
+      setText('normalized-state', normalizedPresent ? 'present' : 'empty');
+
+      setBadge('paste-state', 'pasted', 'good');
+      setBadge('html-state', htmlPresent ? 'present' : 'empty', htmlPresent ? 'good' : '');
+      setBadge('text-state', textPresent ? 'present' : 'empty', textPresent ? 'good' : '');
+      setBadge('normalized-badge', normalizedPresent ? 'html' : 'null', normalizedPresent ? 'good' : '');
+      setBadge('tags-badge', String(hasTags), hasTags ? 'good' : 'warn');
+
+      var signal = document.getElementById('tags-signal');
+      signal.classList.toggle('good', hasTags);
+      signal.style.setProperty('--signal', hasTags ? '1turn' : '0.18turn');
+      setText(
+        'tags-note',
+        hasTags
+          ? 'The normalized value still contains at least one HTML tag.'
+          : 'The normalized value does not match the HTML-tag pattern.'
+      );
+    }
+
+    function clearOutputs() {
+      target.textContent = '';
+      setText('html-output', emptyText);
+      setText('text-output', emptyText);
+      setText('normalized-output', nullText);
+      setText('tags-output', 'false');
+      setText('html-bytes', '0');
+      setText('text-bytes', '0');
+      setText('link-count', '0');
+      setText('normalized-state', 'empty');
+      setText('tags-note', 'Paste rich content to see whether sanitized output still has HTML tags.');
+      setBadge('paste-state', 'waiting', '');
+      setBadge('html-state', 'empty', '');
+      setBadge('text-state', 'empty', '');
+      setBadge('normalized-badge', 'null', '');
+      setBadge('tags-badge', 'false', 'warn');
+      document.getElementById('tags-signal').classList.remove('good');
+      document.getElementById('tags-signal').style.setProperty('--signal', '0turn');
+      target.focus();
+    }
+
+    target.addEventListener('paste', function(e) {
+      var html = e.clipboardData.getData('text/html');
+      var text = e.clipboardData.getData('text/plain');
+      renderClipboard(html, text);
     });
-  });
-  // Unwrap top-level <p>
-  var topPs = Array.from(doc.body.children).filter(function(el) { return el.tagName === 'P'; });
-  if (topPs.length > 0 && topPs.length === doc.body.children.length) {
-    var fragments = [];
-    topPs.forEach(function(p) { var inner = p.innerHTML.trim(); if (inner) fragments.push(inner); });
-    doc.body.innerHTML = fragments.join('<br>');
-  }
-  var sanitized = doc.body.innerHTML.replace(/&nbsp;/g, ' ').replace(/ /g, ' ').trim();
-  var normalized = sanitized || '(null)';
-  document.getElementById('normalized-output').textContent = normalized;
-  document.getElementById('tags-output').textContent = String(/<[a-z][a-z0-9]*[\s>\/]/i.test(normalized));
-});
-</script>
+
+    document.getElementById('focus-paste').addEventListener('click', function() {
+      target.focus();
+    });
+
+    document.getElementById('clear').addEventListener('click', clearOutputs);
+  </script>
 </body>
 </html>
