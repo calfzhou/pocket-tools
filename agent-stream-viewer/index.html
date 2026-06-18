@@ -1,0 +1,1011 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agent Stream Viewer</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #101214;
+      --panel: #171a1d;
+      --panel-2: #1d2227;
+      --ink: #e8ecef;
+      --muted: #9aa5ad;
+      --line: #2e363d;
+      --page-glow-a: rgba(110, 231, 183, 0.08);
+      --page-glow-b: rgba(245, 197, 66, 0.11);
+      --header-bg: rgba(16, 18, 20, 0.78);
+      --pane-title-bg: rgba(23, 26, 29, 0.82);
+      --button-bg: #22282e;
+      --button-hover: #293139;
+      --button-primary-bg: #12352c;
+      --button-primary-ink: #d7fff0;
+      --button-warn-bg: #351d20;
+      --input-bg: #0d0f11;
+      --input-ink: #e2e8f0;
+      --search-bg: #111417;
+      --pill-bg: #13171a;
+      --pill-good-ink: #b7ffe5;
+      --pill-good-line: rgba(110, 231, 183, 0.42);
+      --pill-bad-ink: #ffd5d5;
+      --pill-bad-line: rgba(255, 107, 107, 0.45);
+      --block-bg: #0d1114;
+      --pre-ink: #dbe7ee;
+      --user-accent: #7dd3fc;
+      --user-soft: rgba(125, 211, 252, 0.12);
+      --assistant-accent: #6ee7b7;
+      --assistant-soft: rgba(110, 231, 183, 0.1);
+      --final-accent: #f5c542;
+      --final-soft: rgba(245, 197, 66, 0.12);
+      --tool-accent: #c4b5fd;
+      --tool-soft: rgba(196, 181, 253, 0.1);
+      --note-bg: #13171a;
+      --accent: #6ee7b7;
+      --danger: #ff6b6b;
+      --mono: "Cascadia Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      --sans: "Aptos", "Segoe UI", Verdana, sans-serif;
+    }
+
+    :root[data-theme="light"] {
+      color-scheme: light;
+      --bg: #f5f4ef;
+      --panel: #fbfaf6;
+      --panel-2: #efede6;
+      --ink: #1d2528;
+      --muted: #647076;
+      --line: #d8d3c8;
+      --page-glow-a: rgba(10, 132, 111, 0.12);
+      --page-glow-b: rgba(196, 138, 25, 0.14);
+      --header-bg: rgba(245, 244, 239, 0.86);
+      --pane-title-bg: rgba(239, 237, 230, 0.86);
+      --button-bg: #ffffff;
+      --button-hover: #f0eee7;
+      --button-primary-bg: #dff7ee;
+      --button-primary-ink: #0e4a3d;
+      --button-warn-bg: #fff0ef;
+      --input-bg: #fffefa;
+      --input-ink: #1d2528;
+      --search-bg: #fffefa;
+      --pill-bg: #fffefa;
+      --pill-good-ink: #07543f;
+      --pill-good-line: #0f8f72;
+      --pill-bad-ink: #8f111b;
+      --pill-bad-line: #c53030;
+      --block-bg: #fffefa;
+      --pre-ink: #243033;
+      --user-accent: #075985;
+      --user-soft: rgba(7, 89, 133, 0.08);
+      --assistant-accent: #0f8f72;
+      --assistant-soft: rgba(15, 143, 114, 0.08);
+      --final-accent: #b47b00;
+      --final-soft: rgba(180, 123, 0, 0.1);
+      --tool-accent: #6d4ed8;
+      --tool-soft: rgba(109, 78, 216, 0.08);
+      --note-bg: #efede6;
+      --accent: #0f8f72;
+      --danger: #b4232b;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+      background:
+        linear-gradient(120deg, var(--page-glow-a), transparent 26rem),
+        radial-gradient(circle at 90% 0%, var(--page-glow-b), transparent 24rem),
+        var(--bg);
+      color: var(--ink);
+      font-family: var(--sans);
+    }
+
+    body {
+      min-width: 320px;
+      overflow: hidden;
+    }
+
+    button, textarea, input { font: inherit; }
+
+    button {
+      min-height: 2.35rem;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--button-bg);
+      color: var(--ink);
+      padding: 0.45rem 0.75rem;
+      cursor: pointer;
+      transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
+    }
+
+    button:hover { border-color: #4c5b63; background: var(--button-hover); }
+    button:active { transform: translateY(1px); }
+
+    button.primary {
+      border-color: rgba(110, 231, 183, 0.55);
+      background: var(--button-primary-bg);
+      color: var(--button-primary-ink);
+    }
+
+    button.warn { border-color: rgba(255, 107, 107, 0.45); background: var(--button-warn-bg); }
+
+    button.toggle.active {
+      border-color: rgba(110, 231, 183, 0.5);
+      background: rgba(110, 231, 183, 0.12);
+      color: var(--ink);
+    }
+
+    .app { display: grid; grid-template-rows: auto minmax(0, 1fr); height: 100%; }
+
+    header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 1rem;
+      align-items: end;
+      padding: 1rem;
+      border-bottom: 1px solid var(--line);
+      background: var(--header-bg);
+      backdrop-filter: blur(14px);
+    }
+
+    h1 { margin: 0; font-size: clamp(1.15rem, 2.2vw, 1.75rem); font-weight: 720; line-height: 1.15; }
+    .subtitle { margin-top: 0.28rem; color: var(--muted); font-size: 0.92rem; }
+
+    .toolbar { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.5rem; }
+
+    .theme-switch {
+      display: inline-flex;
+      gap: 0.2rem;
+      padding: 0.18rem;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--button-bg);
+    }
+
+    .theme-option {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.38rem;
+      min-height: 1.95rem;
+      border-color: transparent;
+      padding: 0.2rem 0.55rem;
+      color: var(--muted);
+      background: transparent;
+    }
+
+    .theme-option:hover { border-color: transparent; background: var(--button-hover); }
+
+    .theme-option.active {
+      color: var(--ink);
+      border-color: rgba(110, 231, 183, 0.42);
+      background: rgba(110, 231, 183, 0.1);
+    }
+
+    .theme-icon { width: 1rem; text-align: center; font-size: 1rem; line-height: 1; }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(20rem, 0.78fr) minmax(0, 1.22fr);
+      min-height: 0;
+    }
+
+    .pane {
+      min-height: 0;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      border-right: 1px solid var(--line);
+    }
+
+    .pane:last-child { border-right: 0; }
+
+    .pane-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.8rem;
+      padding: 0.7rem 0.9rem;
+      border-bottom: 1px solid var(--line);
+      background: var(--pane-title-bg);
+    }
+
+    .pane-title strong { font-size: 0.86rem; letter-spacing: 0.08em; text-transform: uppercase; }
+    .mini { color: var(--muted); font-size: 0.82rem; white-space: nowrap; }
+
+    textarea {
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      resize: none;
+      padding: 1rem;
+      border: 0;
+      outline: none;
+      background: var(--input-bg);
+      color: var(--input-ink);
+      font-family: var(--mono);
+      font-size: 0.9rem;
+      line-height: 1.5;
+      tab-size: 2;
+    }
+
+    .output-shell {
+      min-height: 0;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      background: var(--panel);
+    }
+
+    .out-bar {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      flex-wrap: wrap;
+      padding: 0.55rem 0.7rem;
+      border-bottom: 1px solid var(--line);
+      background: var(--pane-title-bg);
+    }
+
+    .search {
+      margin-left: auto;
+      width: min(18rem, 45vw);
+      min-height: 2rem;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--search-bg);
+      color: var(--ink);
+      padding: 0.35rem 0.55rem;
+      outline: none;
+    }
+
+    .search:focus { border-color: rgba(110, 231, 183, 0.7); }
+
+    .status { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 1.55rem;
+      padding: 0.1rem 0.5rem;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--pill-bg);
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+
+    .pill.good { color: var(--pill-good-ink); border-color: var(--pill-good-line); }
+    .pill.bad { color: var(--pill-bad-ink); border-color: var(--pill-bad-line); }
+
+    .view { min-height: 0; overflow: auto; padding: 1.1rem 1.1rem 3rem; }
+
+    .transcript { display: grid; gap: 0.85rem; max-width: 56rem; }
+
+    .step {
+      border: 1px solid var(--line);
+      border-left: 3px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-2);
+      overflow: hidden;
+    }
+
+    .step-head {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      padding: 0.5rem 0.7rem;
+      font-size: 0.74rem;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .role-tag { font-weight: 720; }
+    .step-head .spacer { margin-left: auto; }
+
+    .step-body {
+      padding: 0.2rem 0.85rem 0.85rem;
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    .step.user { border-left-color: var(--user-accent); }
+    .step.user .role-tag { color: var(--user-accent); }
+    .step.user .step-head { background: var(--user-soft); }
+
+    .step.assistant { border-left-color: var(--assistant-accent); }
+    .step.assistant .role-tag { color: var(--assistant-accent); }
+    .step.assistant .step-head { background: var(--assistant-soft); }
+
+    .step.final { border-left-color: var(--final-accent); }
+    .step.final .role-tag { color: var(--final-accent); }
+    .step.final .step-head { background: var(--final-soft); }
+
+    .step.tool { border-left-color: var(--tool-accent); }
+    .step.tool .role-tag { color: var(--tool-accent); }
+    .step.tool .step-head { background: var(--tool-soft); }
+
+    .step.note {
+      border-style: dashed;
+      border-left-style: solid;
+      background: var(--note-bg);
+    }
+
+    .tool-summary {
+      list-style: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      padding: 0.5rem 0.7rem;
+      font-size: 0.78rem;
+      background: var(--tool-soft);
+      color: var(--muted);
+    }
+
+    .tool-summary::-webkit-details-marker { display: none; }
+    .tool-summary .caret { transition: transform 140ms ease; color: var(--muted); }
+    details[open] > .tool-summary .caret { transform: rotate(90deg); }
+
+    .tool-name { font-weight: 720; color: var(--tool-accent); text-transform: none; letter-spacing: 0; font-size: 0.9rem; }
+    .tool-desc { color: var(--muted); text-transform: none; letter-spacing: 0; font-size: 0.85rem; }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 1.4rem;
+      padding: 0.05rem 0.45rem;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      font-size: 0.72rem;
+      text-transform: none;
+      letter-spacing: 0;
+      color: var(--muted);
+    }
+
+    .chip.ok { color: var(--pill-good-ink); border-color: var(--pill-good-line); }
+    .chip.error { color: var(--pill-bad-ink); border-color: var(--pill-bad-line); }
+    .chip.running { color: var(--final-accent); border-color: rgba(245, 197, 66, 0.45); }
+
+    .tool-body { padding: 0.7rem 0.85rem 0.9rem; display: grid; gap: 0.7rem; }
+
+    .field-label {
+      font-size: 0.72rem;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.3rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    pre.code {
+      margin: 0;
+      padding: 0.65rem 0.75rem;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--block-bg);
+      color: var(--pre-ink);
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .copy-small {
+      min-height: 1.5rem;
+      padding: 0.08rem 0.45rem;
+      font-size: 0.72rem;
+      margin-left: auto;
+    }
+
+    .md-p { margin: 0 0 0.55rem; }
+    .md-p:last-child { margin-bottom: 0; }
+    .md-h { margin: 0.5rem 0 0.4rem; line-height: 1.25; }
+    .md-body ul { margin: 0.1rem 0 0.6rem; padding-left: 1.3rem; }
+    .md-body li { margin: 0.12rem 0; }
+    .md-body code {
+      font-family: var(--mono);
+      font-size: 0.86em;
+      padding: 0.05rem 0.32rem;
+      border-radius: 4px;
+      background: var(--block-bg);
+      border: 1px solid var(--line);
+    }
+    .md-body pre.md-code {
+      margin: 0 0 0.6rem;
+      padding: 0.65rem 0.75rem;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--block-bg);
+      color: var(--pre-ink);
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+    .md-body pre.md-code code { background: none; border: 0; padding: 0; }
+
+    .note-line { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; font-size: 0.84rem; color: var(--muted); }
+    .note-line .role-tag { font-size: 0.72rem; }
+    .skill-list { margin: 0.5rem 0 0; padding-left: 1.2rem; columns: 2; font-size: 0.82rem; color: var(--muted); }
+    .skill-list li { margin: 0.1rem 0; break-inside: avoid; }
+
+    .empty, .view-error {
+      display: grid;
+      align-content: center;
+      min-height: 60vh;
+      color: var(--muted);
+      text-align: center;
+      padding: 2rem;
+    }
+
+    .view-error strong { color: var(--danger); }
+
+    pre.code.danger { color: var(--pill-bad-ink); border-color: var(--pill-bad-line); }
+    .field-label.danger { color: var(--pill-bad-ink); }
+
+    mark { border-radius: 3px; background: rgba(245, 197, 66, 0.28); color: inherit; padding: 0 0.1rem; }
+
+    @media (max-width: 900px) {
+      body { overflow: auto; }
+      .app { height: auto; min-height: 100%; }
+      header { grid-template-columns: 1fr; }
+      .toolbar { justify-content: flex-start; }
+      main { grid-template-columns: 1fr; }
+      .pane { min-height: 24rem; border-right: 0; border-bottom: 1px solid var(--line); }
+      .pane.output { min-height: 40rem; }
+      .search { width: 100%; margin-left: 0; }
+      .skill-list { columns: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <h1>Agent Stream Viewer</h1>
+        <div class="subtitle">Paste a raw agent SSE stream (JSON-RPC <code>message/stream</code>). It renders a clean, step-by-step transcript and hides the noise.</div>
+      </div>
+      <div class="toolbar">
+        <button class="primary" id="parseBtn" type="button">Render</button>
+        <button id="sampleBtn" type="button">Sample</button>
+        <button class="toggle" id="detailsBtn" type="button" aria-pressed="false">Show details</button>
+        <button id="copyMdBtn" type="button">Copy Markdown</button>
+        <button id="copyTextBtn" type="button">Copy Text</button>
+        <button class="warn" id="clearBtn" type="button">Clear</button>
+        <div class="theme-switch" role="group" aria-label="Theme">
+          <button class="theme-option" type="button" data-theme-option="light" aria-label="Use light theme">
+            <span class="theme-icon" aria-hidden="true">☼</span><span>Light</span>
+          </button>
+          <button class="theme-option" type="button" data-theme-option="dark" aria-label="Use dark theme">
+            <span class="theme-icon" aria-hidden="true">◐</span><span>Dark</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="pane">
+        <div class="pane-title">
+          <strong>Raw Stream</strong>
+          <span class="mini" id="inputStats">0 chars</span>
+        </div>
+        <textarea id="input" spellcheck="false" placeholder="Paste the raw stream here — the SSE dump with lines like:&#10;data: {&quot;jsonrpc&quot;:&quot;2.0&quot;, ...}"></textarea>
+      </section>
+
+      <section class="pane output">
+        <div class="output-shell">
+          <div class="out-bar">
+            <div class="status" id="status"><span class="pill">Waiting</span></div>
+            <input class="search" id="filter" type="search" placeholder="Filter transcript text">
+          </div>
+          <div class="view">
+            <div class="transcript" id="transcript"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const input = document.getElementById("input");
+    const inputStats = document.getElementById("inputStats");
+    const statusEl = document.getElementById("status");
+    const transcriptEl = document.getElementById("transcript");
+    const filter = document.getElementById("filter");
+    const detailsBtn = document.getElementById("detailsBtn");
+    const themeOptions = Array.from(document.querySelectorAll("[data-theme-option]"));
+
+    const storageKeys = {
+      theme: "agentStreamViewer.theme",
+      details: "agentStreamViewer.details"
+    };
+
+    let steps = [];
+    let showDetails = false;
+    let debounceId = 0;
+
+    /* ---------- settings ---------- */
+    function readSetting(key) {
+      try { return window.localStorage.getItem(key); } catch { return null; }
+    }
+    function writeSetting(key, value) {
+      try { window.localStorage.setItem(key, value); } catch { /* local files may block storage */ }
+    }
+    function getInitialTheme() {
+      const stored = readSetting(storageKeys.theme);
+      if (stored === "light" || stored === "dark") return stored;
+      return window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+    }
+    function applyTheme(theme, persist = true) {
+      const next = theme === "light" ? "light" : "dark";
+      document.documentElement.dataset.theme = next;
+      themeOptions.forEach((option) => {
+        const active = option.dataset.themeOption === next;
+        option.classList.toggle("active", active);
+        option.setAttribute("aria-pressed", String(active));
+      });
+      if (persist) writeSetting(storageKeys.theme, next);
+    }
+
+    /* ---------- helpers ---------- */
+    function escapeHtml(value) {
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function highlight(html, term) {
+      if (!term) return html;
+      const escapedTerm = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      return html.replace(new RegExp(`(${escapedTerm})(?![^<]*>)`, "ig"), "<mark>$1</mark>");
+    }
+
+    function renderMarkdown(src) {
+      const lines = escapeHtml(src).split(/\n/);
+      const inline = (s) => s
+        .replace(/`([^`]+)`/g, "<code>$1</code>")
+        .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+        .replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, "$1<em>$2</em>");
+      let html = "";
+      let inCode = false;
+      let listOpen = false;
+      const closeList = () => { if (listOpen) { html += "</ul>"; listOpen = false; } };
+      for (let line of lines) {
+        if (/^\s*```/.test(line)) {
+          if (!inCode) { closeList(); html += "<pre class='md-code'><code>"; inCode = true; }
+          else { html += "</code></pre>"; inCode = false; }
+          continue;
+        }
+        if (inCode) { html += line + "\n"; continue; }
+        if (/^\s*[-*]\s+/.test(line)) {
+          if (!listOpen) { html += "<ul>"; listOpen = true; }
+          html += "<li>" + inline(line.replace(/^\s*[-*]\s+/, "")) + "</li>";
+          continue;
+        }
+        closeList();
+        const h = /^(#{1,4})\s+(.*)$/.exec(line);
+        if (h) { const lvl = h[1].length; html += `<h${lvl} class='md-h'>` + inline(h[2]) + `</h${lvl}>`; continue; }
+        if (line.trim() === "") continue;
+        html += "<p class='md-p'>" + inline(line) + "</p>";
+      }
+      closeList();
+      if (inCode) html += "</code></pre>";
+      return html || "<p class='md-p'></p>";
+    }
+
+    function fmtMs(ms) {
+      if (typeof ms !== "number") return "";
+      if (ms < 1000) return `${ms} ms`;
+      return `${(ms / 1000).toFixed(ms < 10000 ? 2 : 1)} s`;
+    }
+    function fmtNum(n) { return typeof n === "number" ? n.toLocaleString() : n; }
+
+    /* ---------- parsing ---------- */
+    function parseStream(raw) {
+      const errors = [];
+      const dataChunks = [];
+      let current = [];
+      const flush = () => { if (current.length) { dataChunks.push(current.join("\n")); current = []; } };
+      for (const line of raw.split(/\r\n|\r|\n/)) {
+        if (line === "") { flush(); continue; }
+        const m = /^data:\s?(.*)$/.exec(line);
+        if (m) current.push(m[1]);
+        else if (current.length) current.push(line);
+      }
+      flush();
+
+      const events = [];
+      for (const chunk of dataChunks) {
+        const trimmed = chunk.trim();
+        if (!trimmed || trimmed === "[DONE]") continue;
+        try { events.push(JSON.parse(trimmed)); }
+        catch (e) { errors.push({ preview: trimmed.slice(0, 90), message: String(e.message || e) }); }
+      }
+      return { events, errors };
+    }
+
+    function extractParts(events) {
+      const parts = [];
+      for (const ev of events) {
+        const result = ev && ev.result;
+        if (!result) continue;
+        const artifact = result.artifact;
+        if (!artifact) continue;
+        const profile = artifact.metadata && artifact.metadata.profile;
+        if (profile) parts.push({ kind: "profile", profile });
+        const list = artifact.parts || [];
+        for (const p of list) {
+          parts.push({
+            kind: p.kind,
+            data: p.data,
+            text: p.text,
+            metadata: p.metadata,
+            artifactId: artifact.artifactId,
+            append: result.append
+          });
+        }
+      }
+      return parts;
+    }
+
+    function buildSteps(parts) {
+      const out = [];
+      const toolIndex = new Map();
+      let lastText = null;
+      let sawTurnSignal = false;
+
+      for (const p of parts) {
+        if (p.kind === "profile") { out.push({ type: "profile", profile: p.profile }); continue; }
+
+        if (p.kind === "text") {
+          if (p.metadata && p.metadata.isHeartbeat) continue;
+          const metaType = (p.metadata && p.metadata.type) || "assistant_text";
+          // Merge streamed deltas that share an artifactId.
+          if (lastText && lastText.artifactId && lastText.artifactId === p.artifactId && metaType !== "session_result") {
+            lastText.text += p.text || "";
+            continue;
+          }
+          if (!sawTurnSignal && metaType !== "session_result") {
+            sawTurnSignal = true;
+            const step = { type: "user", text: p.text || "", artifactId: p.artifactId };
+            out.push(step); lastText = step; continue;
+          }
+          if (metaType === "session_result") {
+            if (lastText && lastText.type === "assistant" && lastText.text.trim() === (p.text || "").trim()) {
+              lastText.final = true; continue;
+            }
+            const step = { type: "assistant", text: p.text || "", final: true, artifactId: p.artifactId };
+            out.push(step); lastText = step; continue;
+          }
+          const step = { type: "assistant", text: p.text || "", final: false, artifactId: p.artifactId };
+          out.push(step); lastText = step; continue;
+        }
+
+        if (p.kind === "data") {
+          const d = p.data || {};
+          const t = d.type || "";
+          if (t === "tool.execution_start") {
+            if (d.toolName === "report_intent") {
+              const step = { type: "intent", intent: (d.arguments && d.arguments.intent) || "", toolCallId: d.toolCallId };
+              out.push(step); toolIndex.set(d.toolCallId, step); continue;
+            }
+            const step = {
+              type: "tool", toolName: d.toolName, toolCallId: d.toolCallId,
+              arguments: d.arguments || {}, status: "running"
+            };
+            out.push(step); toolIndex.set(d.toolCallId, step); continue;
+          }
+          if (t === "tool.execution_complete") {
+            const target = d.toolCallId && toolIndex.get(d.toolCallId);
+            const res = d.result || {};
+            const errMsg = d.error && (d.error.message || d.error.code) ? (d.error.message || d.error.code) : "";
+            if (target && target.type === "intent") { target.done = true; continue; }
+            if (target) {
+              target.status = d.success ? "ok" : "error";
+              target.result = res.detailedContent || res.content || "";
+              target.error = d.success ? "" : errMsg;
+            } else {
+              out.push({ type: "tool", toolName: "(tool)", status: d.success ? "ok" : "error", result: res.detailedContent || res.content || "", error: d.success ? "" : errMsg });
+            }
+            continue;
+          }
+          if (t === "assistant.usage") { out.push({ type: "usage", data: d }); continue; }
+          if (t === "session.skills_loaded") { out.push({ type: "session", subtype: "skills", skills: d.skills || [] }); continue; }
+          if (t === "session.tools_updated") { out.push({ type: "session", subtype: "tools", model: d.model }); continue; }
+          if (t === "session.mcp_servers_loaded") { out.push({ type: "session", subtype: "mcp", servers: d.servers || [] }); continue; }
+          out.push({ type: "other", subtype: t, data: d });
+        }
+      }
+      return out;
+    }
+
+    const NOISE_TYPES = new Set(["usage", "session", "intent", "profile", "other"]);
+    function isNoise(step) { return NOISE_TYPES.has(step.type); }
+
+    /* ---------- rendering ---------- */
+    function copyButton(text) {
+      return `<button class="copy-small" type="button" data-copy="${escapeHtml(text)}">Copy</button>`;
+    }
+
+    function renderTool(step, term) {
+      const status = step.status || "ok";
+      const args = step.arguments || {};
+      const desc = args.description || "";
+      const command = typeof args.command === "string" ? args.command : "";
+      const otherArgs = Object.keys(args).filter((k) => k !== "command" && k !== "description");
+      let body = "";
+      if (command) {
+        body += `<div><div class="field-label">Command ${copyButton(command)}</div><pre class="code">${highlight(escapeHtml(command), term)}</pre></div>`;
+      }
+      if (otherArgs.length) {
+        const obj = {}; otherArgs.forEach((k) => (obj[k] = args[k]));
+        const pretty = JSON.stringify(obj, null, 2);
+        body += `<div><div class="field-label">Arguments</div><pre class="code">${highlight(escapeHtml(pretty), term)}</pre></div>`;
+      }
+      if (step.result != null && step.result !== "") {
+        body += `<div><div class="field-label">Result ${copyButton(step.result)}</div><pre class="code">${highlight(escapeHtml(step.result), term)}</pre></div>`;
+      }
+      if (step.error) {
+        body += `<div><div class="field-label danger">Error</div><pre class="code danger">${highlight(escapeHtml(step.error), term)}</pre></div>`;
+      }
+      if (!body) body = `<div class="mini">No output captured.</div>`;
+      const descHtml = desc ? `<span class="tool-desc">${highlight(escapeHtml(desc), term)}</span>` : "";
+      return `
+        <details class="step tool" open>
+          <summary class="tool-summary">
+            <span class="caret">▸</span>
+            <span class="role-tag">TOOL</span>
+            <span class="tool-name">${escapeHtml(step.toolName || "tool")}</span>
+            ${descHtml}
+            <span class="chip ${status}" style="margin-left:auto">${escapeHtml(status)}</span>
+          </summary>
+          <div class="tool-body">${body}</div>
+        </details>`;
+    }
+
+    function renderNote(step, term) {
+      if (step.type === "intent") {
+        return `<div class="step note"><div class="step-body"><div class="note-line"><span class="role-tag">INTENT</span> ${highlight(escapeHtml(step.intent || "(none)"), term)}</div></div></div>`;
+      }
+      if (step.type === "usage") {
+        const d = step.data || {};
+        const bits = [
+          `in ${fmtNum(d.inputTokens)} tok`,
+          `out ${fmtNum(d.outputTokens)} tok`,
+          d.cacheReadTokens ? `cache-read ${fmtNum(d.cacheReadTokens)}` : "",
+          typeof d.duration === "number" ? fmtMs(d.duration) : "",
+          d.initiator ? `by ${d.initiator}` : ""
+        ].filter(Boolean).map((b) => `<span class="chip">${escapeHtml(b)}</span>`).join(" ");
+        return `<div class="step note"><div class="step-body"><div class="note-line"><span class="role-tag">USAGE</span> ${bits}</div></div></div>`;
+      }
+      if (step.type === "session") {
+        if (step.subtype === "skills") {
+          const items = step.skills.map((s) => `<li>${escapeHtml(s.name)}</li>`).join("");
+          return `<div class="step note"><div class="step-body"><div class="note-line"><span class="role-tag">SESSION</span> ${step.skills.length} skills loaded</div><ul class="skill-list">${items}</ul></div></div>`;
+        }
+        if (step.subtype === "mcp") {
+          const names = step.servers.map((s) => `${s.name}${s.status ? ` (${s.status})` : ""}`).join(", ");
+          return `<div class="step note"><div class="step-body"><div class="note-line"><span class="role-tag">SESSION</span> ${step.servers.length} MCP server${step.servers.length === 1 ? "" : "s"} loaded${names ? ` · ${escapeHtml(names)}` : ""}</div></div></div>`;
+        }
+        return `<div class="step note"><div class="step-body"><div class="note-line"><span class="role-tag">SESSION</span> tools updated${step.model ? ` · model ${escapeHtml(step.model)}` : ""}</div></div></div>`;
+      }
+      if (step.type === "profile") {
+        const s = (step.profile && step.profile.summary) || {};
+        const bits = [
+          typeof s.llmCallCounts === "number" ? `${s.llmCallCounts} LLM calls` : "",
+          typeof s.toolCallCounts === "number" ? `${s.toolCallCounts} tool calls` : "",
+          typeof s.totalDurationMs === "number" ? `total ${fmtMs(s.totalDurationMs)}` : ""
+        ].filter(Boolean).map((b) => `<span class="chip">${escapeHtml(b)}</span>`).join(" ");
+        return `<div class="step note"><div class="step-body"><div class="note-line"><span class="role-tag">PROFILE</span> ${bits}</div></div></div>`;
+      }
+      const json = escapeHtml(JSON.stringify(step.data || {}, null, 2));
+      return `<div class="step note"><div class="step-body"><div class="note-line"><span class="role-tag">${escapeHtml(step.subtype || "event")}</span></div><pre class="code">${json}</pre></div></div>`;
+    }
+
+    function renderStep(step, term) {
+      if (step.type === "user") {
+        return `<div class="step user"><div class="step-head"><span class="role-tag">USER</span></div><div class="step-body md-body">${highlight(renderMarkdown(step.text), term)}</div></div>`;
+      }
+      if (step.type === "assistant") {
+        const cls = step.final ? "step assistant final" : "step assistant";
+        const tag = step.final ? "ASSISTANT · FINAL" : "ASSISTANT";
+        return `<div class="${cls}"><div class="step-head"><span class="role-tag">${tag}</span></div><div class="step-body md-body">${highlight(renderMarkdown(step.text), term)}</div></div>`;
+      }
+      if (step.type === "tool") return renderTool(step, term);
+      return renderNote(step, term);
+    }
+
+    function stepSearchText(step) {
+      if (step.type === "user" || step.type === "assistant") return step.text || "";
+      if (step.type === "tool") return [step.toolName, JSON.stringify(step.arguments || {}), step.result, step.error].join(" ");
+      if (step.type === "intent") return step.intent || "";
+      if (step.type === "session") {
+        if (step.subtype === "skills") return step.skills.map((s) => s.name).join(" ");
+        if (step.subtype === "mcp") return step.servers.map((s) => s.name).join(" ");
+        return "tools";
+      }
+      return JSON.stringify(step.data || step.profile || {});
+    }
+
+    function render() {
+      const term = filter.value.trim();
+      if (!steps.length) {
+        transcriptEl.innerHTML = '<div class="empty">Paste a stream and press <strong>Render</strong>, or hit <strong>Sample</strong> to see how it looks.</div>';
+        return;
+      }
+      const termLower = term.toLowerCase();
+      const visible = steps.filter((step) => {
+        if (!showDetails && isNoise(step)) return false;
+        if (term && !stepSearchText(step).toLowerCase().includes(termLower)) return false;
+        return true;
+      });
+      if (!visible.length) {
+        transcriptEl.innerHTML = '<div class="empty">No steps match the current filter.</div>';
+        return;
+      }
+      transcriptEl.innerHTML = visible.map((step) => renderStep(step, term)).join("");
+      transcriptEl.querySelectorAll(".copy-small").forEach((btn) => {
+        btn.addEventListener("click", (event) => {
+          event.preventDefault();
+          copyToClipboard(btn.dataset.copy || "");
+        });
+      });
+    }
+
+    function setStatus(items) {
+      statusEl.innerHTML = items.map((item) => {
+        const cls = item.kind ? `pill ${item.kind}` : "pill";
+        return `<span class="${cls}">${escapeHtml(item.text)}</span>`;
+      }).join("");
+    }
+
+    /* ---------- exports ---------- */
+    function toMarkdown() {
+      const lines = [];
+      for (const step of steps) {
+        if (!showDetails && isNoise(step)) continue;
+        if (step.type === "user") { lines.push(`### User`, "", step.text.trim(), ""); }
+        else if (step.type === "assistant") { lines.push(`### Assistant${step.final ? " (final)" : ""}`, "", step.text.trim(), ""); }
+        else if (step.type === "tool") {
+          const args = step.arguments || {};
+          lines.push(`### Tool · ${step.toolName}${args.description ? " — " + args.description : ""}  [${step.status}]`, "");
+          if (typeof args.command === "string") { lines.push("```", args.command, "```", ""); }
+          const others = Object.keys(args).filter((k) => k !== "command" && k !== "description");
+          if (others.length) { const o = {}; others.forEach((k) => (o[k] = args[k])); lines.push("Arguments:", "```json", JSON.stringify(o, null, 2), "```", ""); }
+          if (step.result) { lines.push("Result:", "```", String(step.result).trim(), "```", ""); }
+          if (step.error) { lines.push("Error:", "```", String(step.error).trim(), "```", ""); }
+        } else if (step.type === "intent") { lines.push(`> Intent: ${step.intent}`, ""); }
+        else if (step.type === "usage") { const d = step.data; lines.push(`> Usage: in ${d.inputTokens} / out ${d.outputTokens} tokens, ${fmtMs(d.duration)}`, ""); }
+        else if (step.type === "session") { lines.push(step.subtype === "skills" ? `> Session: ${step.skills.length} skills loaded` : step.subtype === "mcp" ? `> Session: ${step.servers.length} MCP server(s) loaded` : `> Session: tools updated`, ""); }
+        else if (step.type === "profile") { const s = step.profile.summary || {}; lines.push(`> Profile: ${s.llmCallCounts} LLM calls, ${s.toolCallCounts} tool calls, total ${fmtMs(s.totalDurationMs)}`, ""); }
+      }
+      return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim() + "\n";
+    }
+
+    function toPlainText() {
+      const lines = [];
+      for (const step of steps) {
+        if (!showDetails && isNoise(step)) continue;
+        if (step.type === "user") lines.push(`USER: ${step.text.trim()}`, "");
+        else if (step.type === "assistant") lines.push(`ASSISTANT${step.final ? " (final)" : ""}: ${step.text.trim()}`, "");
+        else if (step.type === "tool") {
+          const args = step.arguments || {};
+          lines.push(`TOOL ${step.toolName} [${step.status}]${args.description ? " — " + args.description : ""}`);
+          if (typeof args.command === "string") lines.push(`  $ ${args.command}`);
+          if (step.result) lines.push(`  → ${String(step.result).trim().replace(/\n/g, "\n    ")}`);
+          if (step.error) lines.push(`  ✗ ${String(step.error).trim().replace(/\n/g, "\n    ")}`);
+          lines.push("");
+        } else if (step.type === "intent") lines.push(`INTENT: ${step.intent}`, "");
+        else if (step.type === "usage") { const d = step.data; lines.push(`USAGE: in ${d.inputTokens} / out ${d.outputTokens} tokens, ${fmtMs(d.duration)}`, ""); }
+        else if (step.type === "session") lines.push(step.subtype === "skills" ? `SESSION: ${step.skills.length} skills loaded` : step.subtype === "mcp" ? `SESSION: ${step.servers.length} MCP server(s) loaded` : "SESSION: tools updated", "");
+        else if (step.type === "profile") { const s = step.profile.summary || {}; lines.push(`PROFILE: ${s.llmCallCounts} LLM calls, ${s.toolCallCounts} tool calls, total ${fmtMs(s.totalDurationMs)}`, ""); }
+      }
+      return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim() + "\n";
+    }
+
+    async function copyToClipboard(text) {
+      if (!text) return;
+      try {
+        await navigator.clipboard.writeText(text);
+        flashStatus("Copied", "good");
+      } catch {
+        flashStatus("Copy blocked by browser", "bad");
+      }
+    }
+
+    let flashId = 0;
+    function flashStatus(text, kind) {
+      window.clearTimeout(flashId);
+      const prev = statusEl.innerHTML;
+      statusEl.innerHTML = `<span class="pill ${kind}">${escapeHtml(text)}</span>`;
+      flashId = window.setTimeout(() => { statusEl.innerHTML = prev; }, 1100);
+    }
+
+    /* ---------- main flow ---------- */
+    function run() {
+      const raw = input.value;
+      inputStats.textContent = `${raw.length.toLocaleString()} chars`;
+      if (!raw.trim()) {
+        steps = [];
+        setStatus([{ text: "Waiting" }]);
+        render();
+        return;
+      }
+      const { events, errors } = parseStream(raw);
+      if (!events.length) {
+        steps = [];
+        setStatus([{ text: "No stream events found", kind: "bad" }]);
+        transcriptEl.innerHTML = `<div class="view-error"><strong>Nothing to render</strong><br>Expected SSE lines starting with <code>data:</code> containing JSON-RPC events.${errors.length ? `<br>${errors.length} chunk(s) failed to parse.` : ""}</div>`;
+        return;
+      }
+      steps = buildSteps(extractParts(events));
+      const toolCount = steps.filter((s) => s.type === "tool").length;
+      const msgCount = steps.filter((s) => s.type === "assistant").length;
+      const profile = steps.find((s) => s.type === "profile");
+      const pills = [
+        { text: `${events.length} events`, kind: "good" },
+        { text: `${msgCount} messages` },
+        { text: `${toolCount} tool calls` }
+      ];
+      if (profile && profile.profile.summary && typeof profile.profile.summary.totalDurationMs === "number") {
+        pills.push({ text: `total ${fmtMs(profile.profile.summary.totalDurationMs)}` });
+      }
+      if (errors.length) pills.push({ text: `${errors.length} unparsed`, kind: "bad" });
+      setStatus(pills);
+      render();
+    }
+
+    function setDetails(next, persist = true) {
+      showDetails = next;
+      detailsBtn.classList.toggle("active", showDetails);
+      detailsBtn.setAttribute("aria-pressed", String(showDetails));
+      detailsBtn.textContent = showDetails ? "Hide details" : "Show details";
+      if (persist) writeSetting(storageKeys.details, showDetails ? "1" : "0");
+      render();
+    }
+
+    const sampleText = [
+      'data: {"jsonrpc":"2.0","id":"demo-1","result":{"kind":"artifact-update","taskId":"task-demo","contextId":"ctx-demo","artifact":{"artifactId":"a-skills","parts":[{"kind":"data","data":{"type":"session.skills_loaded","skills":[{"name":"docx","description":"Create Word documents","source":"custom","enabled":true},{"name":"pdf","description":"Work with PDF files","source":"custom","enabled":true},{"name":"xlsx","description":"Edit spreadsheets","source":"custom","enabled":true}]},"metadata":{"type":"session_init"}}]},"append":false,"lastChunk":false}}',
+      'data: {"jsonrpc":"2.0","id":"demo-1","result":{"kind":"artifact-update","taskId":"task-demo","contextId":"ctx-demo","artifact":{"artifactId":"a-tools","parts":[{"kind":"data","data":{"type":"session.tools_updated","model":"per-runner-default"},"metadata":{"type":"session_init"}}]},"append":false,"lastChunk":false}}',
+      'data: {"jsonrpc":"2.0","id":"demo-1","result":{"kind":"artifact-update","taskId":"task-demo","contextId":"ctx-demo","artifact":{"artifactId":"a-user","parts":[{"kind":"text","text":"how many .txt files are in the sample folder?","metadata":{"type":"assistant_text"}}]},"append":false,"lastChunk":false}}',
+      'data: {"jsonrpc":"2.0","id":"demo-1","result":{"kind":"artifact-update","taskId":"task-demo","contextId":"ctx-demo","artifact":{"artifactId":"a-usage1","parts":[{"kind":"data","data":{"type":"assistant.usage","model":"per-runner-default","inputTokens":1820,"outputTokens":48,"cacheReadTokens":0,"duration":1450,"initiator":"user"},"metadata":{"type":"usage"}}]},"append":false,"lastChunk":false}}',
+      'data: {"jsonrpc":"2.0","id":"demo-1","result":{"kind":"artifact-update","taskId":"task-demo","contextId":"ctx-demo","artifact":{"artifactId":"a-say1","parts":[{"kind":"text","text":"Sure — let me count the **.txt** files for you.","metadata":{"type":"assistant_text"}}]},"append":false,"lastChunk":false}}',
+      'data: {"jsonrpc":"2.0","id":"demo-1","result":{"kind":"artifact-update","taskId":"task-demo","contextId":"ctx-demo","artifact":{"artifactId":"a-intent","parts":[{"kind":"data","data":{"type":"tool.execution_start","toolCallId":"call-intent","toolName":"report_intent","arguments":{"intent":"Counting text files"},"turnId":"0"},"metadata":{"type":"tool_call"}}]},"append":false,"lastChunk":false}}',
+      'data: {"jsonrpc":"2.0","id":"demo-1","result":{"kind":"artifact-update","taskId":"task-demo","contextId":"ctx-demo","artifact":{"artifactId":"a-bash","parts":[{"kind":"data","data":{"type":"tool.execution_start","toolCallId":"call-bash","toolName":"bash","arguments":{"command":"ls sample/*.txt | wc -l","description":"Count .txt files in sample folder"},"turnId":"0"},"metadata":{"type":"tool_call"}}]},"append":false,"lastChunk":false}}',
+      'data: {"jsonrpc":"2.0","id":"demo-1","result":{"kind":"artifact-update","taskId":"task-demo","contextId":"ctx-demo","artifact":{"artifactId":"a-intent-done","parts":[{"kind":"data","data":{"type":"tool.execution_complete","toolCallId":"call-intent","turnId":"0","success":true,"result":{"content":"Intent logged","detailedContent":"Counting text files"}},"metadata":{"type":"tool_result"}}]},"append":false,"lastChunk":false}}',
+      'data: {"jsonrpc":"2.0","id":"demo-1","result":{"kind":"artifact-update","taskId":"task-demo","contextId":"ctx-demo","artifact":{"artifactId":"a-bash-done","parts":[{"kind":"data","data":{"type":"tool.execution_complete","toolCallId":"call-bash","turnId":"0","success":true,"result":{"content":"3","detailedContent":"3\\n<shell completed exit code 0>"}},"metadata":{"type":"tool_result"}}]},"append":false,"lastChunk":false}}',
+      'data: {"jsonrpc":"2.0","id":"demo-1","result":{"kind":"artifact-update","taskId":"task-demo","contextId":"ctx-demo","artifact":{"artifactId":"a-usage2","parts":[{"kind":"data","data":{"type":"assistant.usage","model":"per-runner-default","inputTokens":1980,"outputTokens":36,"cacheReadTokens":1820,"duration":1210,"initiator":"agent"},"metadata":{"type":"usage"}}]},"append":false,"lastChunk":false}}',
+      'data: {"jsonrpc":"2.0","id":"demo-1","result":{"kind":"artifact-update","taskId":"task-demo","contextId":"ctx-demo","artifact":{"artifactId":"a-final","parts":[{"kind":"text","text":"There are **3** `.txt` files in the sample folder:\\n\\n- `notes.txt`\\n- `todo.txt`\\n- `readme.txt`","metadata":{"type":"assistant_text"}}]},"append":false,"lastChunk":false}}',
+      'data: {"jsonrpc":"2.0","id":"demo-1","result":{"kind":"artifact-update","taskId":"task-demo","contextId":"ctx-demo","artifact":{"artifactId":"a-result","parts":[{"kind":"text","text":"There are **3** `.txt` files in the sample folder:\\n\\n- `notes.txt`\\n- `todo.txt`\\n- `readme.txt`","metadata":{"type":"session_result"}}]},"append":false,"lastChunk":false}}',
+      'data: {"jsonrpc":"2.0","id":"demo-1","result":{"kind":"artifact-update","taskId":"task-demo","contextId":"ctx-demo","artifact":{"artifactId":"a-profile","parts":[],"metadata":{"profile":{"summary":{"llmCallCounts":2,"llmCallDurationMs":2660,"toolCallCounts":2,"toolCallDurationMs":230,"totalDurationMs":3010}}}},"append":false,"lastChunk":true}}',
+      ''
+    ].join("\n\n");
+
+    /* ---------- wire up ---------- */
+    applyTheme(getInitialTheme(), false);
+    setDetails(readSetting(storageKeys.details) === "1", false);
+
+    document.getElementById("parseBtn").addEventListener("click", run);
+    document.getElementById("sampleBtn").addEventListener("click", () => { input.value = sampleText; run(); });
+    document.getElementById("copyMdBtn").addEventListener("click", () => copyToClipboard(toMarkdown()));
+    document.getElementById("copyTextBtn").addEventListener("click", () => copyToClipboard(toPlainText()));
+    document.getElementById("clearBtn").addEventListener("click", () => { input.value = ""; filter.value = ""; run(); });
+    detailsBtn.addEventListener("click", () => setDetails(!showDetails));
+    themeOptions.forEach((option) => option.addEventListener("click", () => applyTheme(option.dataset.themeOption)));
+    filter.addEventListener("input", render);
+    input.addEventListener("input", () => {
+      inputStats.textContent = `${input.value.length.toLocaleString()} chars`;
+      window.clearTimeout(debounceId);
+      debounceId = window.setTimeout(run, 300);
+    });
+
+    render();
+  </script>
+</body>
+</html>
