@@ -323,6 +323,10 @@
     .step.tool .role-tag { color: var(--tool-accent); }
     .step.tool .step-head { background: var(--tool-soft); }
 
+    .step.api-error { border-left-color: var(--danger); }
+    .step.api-error .role-tag { color: var(--danger); }
+    .step.api-error .step-head { background: rgba(255, 107, 107, 0.1); }
+
     .step.note {
       border-style: dashed;
       border-left-style: solid;
@@ -633,6 +637,10 @@
     function extractParts(events) {
       const parts = [];
       for (const ev of events) {
+        if (ev && ev.error) {
+          parts.push({ kind: "api-error", error: ev.error });
+          continue;
+        }
         const result = ev && ev.result;
         if (!result) continue;
         const artifact = result.artifact;
@@ -685,6 +693,15 @@
           }
           const step = { type: "assistant", text: p.text || "", final: false, artifactId: p.artifactId };
           out.push(step); lastText = step; continue;
+        }
+
+        if (p.kind === "api-error") {
+          const err = p.error || {};
+          const nested = err.data || {};
+          const msg = nested.message || err.message || "Unknown API error";
+          const code = typeof err.code === "number" ? err.code : "";
+          out.push({ type: "api-error", message: msg, code, stack: nested.stack || "" });
+          continue;
         }
 
         if (p.kind === "data") {
@@ -818,11 +835,18 @@
         return `<div class="${cls}"><div class="step-head"><span class="role-tag">${tag}</span></div><div class="step-body md-body">${highlight(renderMarkdown(step.text), term)}</div></div>`;
       }
       if (step.type === "tool") return renderTool(step, term);
+      if (step.type === "api-error") {
+        const codeChip = step.code ? ` <span class="chip error">${escapeHtml(step.code)}</span>` : "";
+        let body = `<pre class="code danger">${highlight(escapeHtml(step.message), term)}</pre>`;
+        if (step.stack) body += `<details><summary class="mini" style="cursor:pointer;margin-top:0.5rem">Stack trace</summary><pre class="code" style="margin-top:0.4rem;font-size:0.78rem">${escapeHtml(step.stack)}</pre></details>`;
+        return `<div class="step api-error"><div class="step-head"><span class="role-tag">API ERROR</span>${codeChip}</div><div class="step-body">${body}</div></div>`;
+      }
       return renderNote(step, term);
     }
 
     function stepSearchText(step) {
       if (step.type === "user" || step.type === "assistant") return step.text || "";
+      if (step.type === "api-error") return step.message + " " + step.stack;
       if (step.type === "tool") return [step.toolName, JSON.stringify(step.arguments || {}), step.result, step.error].join(" ");
       if (step.type === "intent") return step.intent || "";
       if (step.type === "session") {
@@ -880,6 +904,9 @@
           if (others.length) { const o = {}; others.forEach((k) => (o[k] = args[k])); lines.push("Arguments:", "```json", JSON.stringify(o, null, 2), "```", ""); }
           if (step.result) { lines.push("Result:", "```", String(step.result).trim(), "```", ""); }
           if (step.error) { lines.push("Error:", "```", String(step.error).trim(), "```", ""); }
+        } else if (step.type === "api-error") {
+          lines.push(`### API Error${step.code ? ` [${step.code}]` : ""}`, "", "```", step.message, "```", "");
+          if (step.stack) lines.push("Stack:", "```", step.stack, "```", "");
         } else if (step.type === "intent") { lines.push(`> Intent: ${step.intent}`, ""); }
         else if (step.type === "usage") { const d = step.data; lines.push(`> Usage: in ${d.inputTokens} / out ${d.outputTokens} tokens, ${fmtMs(d.duration)}`, ""); }
         else if (step.type === "session") { lines.push(step.subtype === "skills" ? `> Session: ${step.skills.length} skills loaded` : step.subtype === "mcp" ? `> Session: ${step.servers.length} MCP server(s) loaded` : `> Session: tools updated`, ""); }
@@ -901,6 +928,8 @@
           if (step.result) lines.push(`  → ${String(step.result).trim().replace(/\n/g, "\n    ")}`);
           if (step.error) lines.push(`  ✗ ${String(step.error).trim().replace(/\n/g, "\n    ")}`);
           lines.push("");
+        } else if (step.type === "api-error") {
+          lines.push(`API ERROR${step.code ? ` [${step.code}]` : ""}: ${step.message}`, "");
         } else if (step.type === "intent") lines.push(`INTENT: ${step.intent}`, "");
         else if (step.type === "usage") { const d = step.data; lines.push(`USAGE: in ${d.inputTokens} / out ${d.outputTokens} tokens, ${fmtMs(d.duration)}`, ""); }
         else if (step.type === "session") lines.push(step.subtype === "skills" ? `SESSION: ${step.skills.length} skills loaded` : step.subtype === "mcp" ? `SESSION: ${step.servers.length} MCP server(s) loaded` : "SESSION: tools updated", "");
