@@ -645,6 +645,7 @@
         if (!result) continue;
         const artifact = result.artifact;
         if (!artifact) continue;
+        const reqId = ev.id;
         const profile = artifact.metadata && artifact.metadata.profile;
         if (profile) parts.push({ kind: "profile", profile });
         const list = artifact.parts || [];
@@ -653,9 +654,11 @@
             kind: p.kind,
             data: p.data,
             text: p.text,
+            file: p.file,
             metadata: p.metadata,
             artifactId: artifact.artifactId,
-            append: result.append
+            append: result.append,
+            reqId
           });
         }
       }
@@ -667,13 +670,28 @@
       const toolIndex = new Map();
       let lastText = null;
       let sawTurnSignal = false;
+      let currentReqId = undefined;
 
       for (const p of parts) {
+        if (p.reqId !== undefined && p.reqId !== currentReqId) {
+          currentReqId = p.reqId;
+          sawTurnSignal = false;
+        }
         if (p.kind === "profile") { out.push({ type: "profile", profile: p.profile }); continue; }
+
+        if (p.kind === "file") {
+          const f = p.file || {};
+          out.push({ type: "file", name: f.name || "(file)", mimeType: f.mimeType || "", uri: f.uri || "" });
+          continue;
+        }
 
         if (p.kind === "text") {
           if (p.metadata && p.metadata.isHeartbeat) continue;
           const metaType = (p.metadata && p.metadata.type) || "assistant_text";
+          if (metaType === "reasoning") {
+            if (p.text && p.text.trim()) out.push({ type: "reasoning", text: p.text });
+            continue;
+          }
           // Merge streamed deltas that share an artifactId.
           if (lastText && lastText.artifactId && lastText.artifactId === p.artifactId && metaType !== "session_result") {
             lastText.text += p.text || "";
@@ -742,7 +760,7 @@
       return out;
     }
 
-    const NOISE_TYPES = new Set(["usage", "session", "intent", "profile", "other"]);
+    const NOISE_TYPES = new Set(["usage", "session", "intent", "profile", "other", "reasoning"]);
     function isNoise(step) { return NOISE_TYPES.has(step.type); }
 
     /* ---------- rendering ---------- */
@@ -789,6 +807,9 @@
     function renderNote(step, term) {
       if (step.type === "intent") {
         return `<div class="step note"><div class="step-body"><div class="note-line"><span class="role-tag">INTENT</span> ${highlight(escapeHtml(step.intent || "(none)"), term)}</div></div></div>`;
+      }
+      if (step.type === "reasoning") {
+        return `<div class="step note"><div class="step-body"><div class="note-line"><span class="role-tag">REASONING</span></div><pre class="code">${highlight(escapeHtml(step.text), term)}</pre></div></div>`;
       }
       if (step.type === "usage") {
         const d = step.data || {};
@@ -841,12 +862,19 @@
         if (step.stack) body += `<details><summary class="mini" style="cursor:pointer;margin-top:0.5rem">Stack trace</summary><pre class="code" style="margin-top:0.4rem;font-size:0.78rem">${escapeHtml(step.stack)}</pre></details>`;
         return `<div class="step api-error"><div class="step-head"><span class="role-tag">API ERROR</span>${codeChip}</div><div class="step-body">${body}</div></div>`;
       }
+      if (step.type === "file") {
+        const label = step.name + (step.mimeType ? ` (${step.mimeType})` : "");
+        const uriHtml = step.uri ? `<pre class="code">${highlight(escapeHtml(step.uri), term)}</pre>` : "";
+        return `<div class="step assistant"><div class="step-head"><span class="role-tag">FILE</span><span class="mini">${escapeHtml(label)}</span></div><div class="step-body">${uriHtml || '<span class="mini">No URI</span>'}</div></div>`;
+      }
       return renderNote(step, term);
     }
 
     function stepSearchText(step) {
       if (step.type === "user" || step.type === "assistant") return step.text || "";
       if (step.type === "api-error") return step.message + " " + step.stack;
+      if (step.type === "file") return step.name + " " + step.uri;
+      if (step.type === "reasoning") return step.text || "";
       if (step.type === "tool") return [step.toolName, JSON.stringify(step.arguments || {}), step.result, step.error].join(" ");
       if (step.type === "intent") return step.intent || "";
       if (step.type === "session") {
