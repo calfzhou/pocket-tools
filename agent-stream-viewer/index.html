@@ -503,6 +503,8 @@
         <div class="output-shell">
           <div class="out-bar">
             <div class="status" id="status"><span class="pill">Waiting</span></div>
+            <button id="expandBtn" type="button" style="font-size:0.78rem;padding:0.3rem 0.55rem">Expand all</button>
+            <button id="collapseBtn" type="button" style="font-size:0.78rem;padding:0.3rem 0.55rem">Collapse all</button>
             <input class="search" id="filter" type="search" placeholder="Filter transcript text">
           </div>
           <div class="view">
@@ -1054,6 +1056,12 @@
     document.getElementById("copyTextBtn").addEventListener("click", () => copyToClipboard(toPlainText()));
     document.getElementById("clearBtn").addEventListener("click", () => { input.value = ""; filter.value = ""; run(); });
     detailsBtn.addEventListener("click", () => setDetails(!showDetails));
+    document.getElementById("expandBtn").addEventListener("click", () => {
+      transcriptEl.querySelectorAll("details").forEach((d) => (d.open = true));
+    });
+    document.getElementById("collapseBtn").addEventListener("click", () => {
+      transcriptEl.querySelectorAll("details").forEach((d) => (d.open = false));
+    });
     themeOptions.forEach((option) => option.addEventListener("click", () => applyTheme(option.dataset.themeOption)));
     filter.addEventListener("input", render);
     input.addEventListener("input", () => {
