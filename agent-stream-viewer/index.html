@@ -794,7 +794,7 @@
       if (!body) body = `<div class="mini">No output captured.</div>`;
       const descHtml = desc ? `<span class="tool-desc">${highlight(escapeHtml(desc), term)}</span>` : "";
       return `
-        <details class="step tool" open>
+        <details class="step tool">
           <summary class="tool-summary">
             <span class="caret">▸</span>
             <span class="role-tag">TOOL</span>
